@@ -18,7 +18,7 @@ from PIL import Image
 # 添加项目根目录到路径以便导入path_manager
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from manga_translator.utils import open_pil_image
-from manga_translator.utils.path_manager import find_json_path, is_work_image_path
+from manga_translator.utils.path_manager import find_json_path
 
 
 class FileService:
@@ -76,76 +76,6 @@ class FileService:
                 image_data = data[image_key]
 
             regions = image_data.get('regions', [])
-            
-            # 检查是否有超分倍率，如果有则总是缩小坐标和字体大小
-            upscale_ratio = image_data.get('upscale_ratio', 0)
-            # 确保 upscale_ratio 是数字类型，支持多种格式：
-            # - 数字: 2, 3, 4
-            # - 字符串数字: "2", "3", "4"
-            # - mangajanai格式: "x2", "x4", "DAT2 x4"
-            # - realcugan格式: "2x-conservative", "3x-denoise1x" 等
-            try:
-                if isinstance(upscale_ratio, str):
-                    # 移除空格并转小写
-                    upscale_ratio = upscale_ratio.strip().lower()
-                    # 提取数字部分（支持 "2x-xxx" 和 "x2" 格式）
-                    import re
-                    # 优先匹配开头的数字（如 "2x-conservative" 中的 2）
-                    match = re.match(r'^(\d+)x', upscale_ratio)
-                    if not match:
-                        # 如果没匹配到，尝试匹配任意位置的数字（如 "x2" 或 "DAT2 x4"）
-                        match = re.search(r'(\d+)', upscale_ratio)
-                    
-                    if match:
-                        upscale_ratio = float(match.group(1))
-                    else:
-                        upscale_ratio = 0
-                else:
-                    upscale_ratio = float(upscale_ratio) if upscale_ratio else 0
-            except (ValueError, TypeError):
-                self.logger.warning(f"无法解析超分倍率: {image_data.get('upscale_ratio')}, 将忽略")
-                upscale_ratio = 0
-            
-            should_downscale_for_original = upscale_ratio > 0 and not is_work_image_path(image_path)
-
-            if should_downscale_for_original:
-                self.logger.info(f"检测到超分倍率: {upscale_ratio}, 将坐标和字体大小缩小到原图比例")
-                for region in regions:
-                    # 缩放坐标
-                    if 'lines' in region:
-                        lines = region['lines']
-                        if isinstance(lines, list):
-                            # 将坐标除以upscale_ratio
-                            scaled_lines = []
-                            for poly in lines:
-                                scaled_poly = []
-                                for point in poly:
-                                    if isinstance(point, (list, tuple)) and len(point) >= 2:
-                                        scaled_point = [point[0] / upscale_ratio, point[1] / upscale_ratio]
-                                        scaled_poly.append(scaled_point)
-                                if scaled_poly:
-                                    scaled_lines.append(scaled_poly)
-                            region['lines'] = scaled_lines
-                    
-                    # 缩放字体大小
-                    if 'font_size' in region and region['font_size']:
-                        original_font_size = region['font_size']
-                        region['font_size'] = int(original_font_size / upscale_ratio)
-                        self.logger.debug(f"Font size scaled: {original_font_size} → {region['font_size']}")
-
-            # 始终从 lines 重算 center（外接矩形中心），
-            # 避免旧版 _apply_white_frame_center 污染或超分缩放遗漏导致位置偏移
-            for region in regions:
-                lines = region.get('lines')
-                if lines and isinstance(lines, list):
-                    all_points = [p for poly in lines for p in poly if isinstance(p, (list, tuple)) and len(p) >= 2]
-                    if all_points:
-                        xs = [p[0] for p in all_points]
-                        ys = [p[1] for p in all_points]
-                        region['center'] = [
-                            (min(xs) + max(xs)) / 2,
-                            (min(ys) + max(ys)) / 2,
-                        ]
 
             config = self.config_service.get_config()
             default_target_lang = config.translator.target_lang if config else None
@@ -161,23 +91,11 @@ class FileService:
                     img_bytes = base64.b64decode(mask_data)
                     img_array = np.frombuffer(img_bytes, dtype=np.uint8)
                     raw_mask = cv2.imdecode(img_array, cv2.IMREAD_UNCHANGED)
-                    # 如果有超分倍率，缩小mask
-                    if should_downscale_for_original and raw_mask is not None:
-                        new_height = int(raw_mask.shape[0] / upscale_ratio)
-                        new_width = int(raw_mask.shape[1] / upscale_ratio)
-                        raw_mask = cv2.resize(raw_mask, (new_width, new_height), interpolation=cv2.INTER_NEAREST)
-                        self.logger.info(f"蒙版已缩小到原图比例: {raw_mask.shape}")
                 except Exception as e:
                     self.logger.error(f"Failed to decode base64 mask in {os.path.basename(json_path)}: {e}")
                     raw_mask = None
             elif isinstance(mask_data, list):
                 raw_mask = np.array(mask_data, dtype=np.uint8)
-                # 如果有超分倍率，缩小mask
-                if should_downscale_for_original and raw_mask is not None:
-                    new_height = int(raw_mask.shape[0] / upscale_ratio)
-                    new_width = int(raw_mask.shape[1] / upscale_ratio)
-                    raw_mask = cv2.resize(raw_mask, (new_width, new_height), interpolation=cv2.INTER_NEAREST)
-                    self.logger.info(f"蒙版已缩小到原图比例: {raw_mask.shape}")
             
             original_size = (image_data.get('original_width'), image_data.get('original_height'))
 
