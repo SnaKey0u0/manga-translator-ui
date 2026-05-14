@@ -665,15 +665,32 @@ def _glyph_stroke_alpha(cdpt: str, font_size: int, stroke_ratio: float) -> np.nd
     cached = _cache_get(state.strokes, key)
     if cached is not None:
         return cached
-    # 用形态学膨胀替代 QPainterPathStroker，对复杂字形速度快数百倍
     raster = _glyph_raster(cdpt, font_size)
     if raster.alpha.size == 0:
         return _cache_put(state.strokes, key, np.zeros((0, 0), dtype=np.uint8), _STROKE_CACHE_MAX)
     stroke_px = max(int(stroke_ratio * font_size), 1)
-    kernel_size = stroke_px * 2 + 1
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
-    alpha = cv2.dilate(raster.alpha, kernel)
-    return _cache_put(state.strokes, key, alpha, _STROKE_CACHE_MAX)
+    # 距离变换描边：比椭圆膨胀更贴合字形轮廓，比矢量路径描边快得多。
+    # 原理：对二值化 alpha 图计算每像素到最近前景像素的欧氏距离，
+    # 距离 <= stroke_px 的区域即为描边，再用原始 alpha 做抗锯齿过渡。
+    src = raster.alpha
+    pad = stroke_px + 1
+    padded = cv2.copyMakeBorder(src, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=0)
+    # 前景 mask（二值化，阈值 128 避免抗锯齿半透明像素干扰距离计算）
+    fg_mask = (padded >= 128).astype(np.uint8) * 255
+    # 对背景像素计算到最近前景的距离
+    bg_mask = cv2.bitwise_not(fg_mask)
+    dist = cv2.distanceTransform(bg_mask, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    # 描边区域：距离 <= stroke_px，平滑过渡避免硬边
+    stroke_region = np.clip((stroke_px + 0.5 - dist), 0.0, 1.0)
+    stroke_alpha = (stroke_region * 255).astype(np.uint8)
+    # 合并描边与原始 alpha（保留文字内部抗锯齿），保留 padding 以包含扩展区域
+    full_alpha = np.maximum(stroke_alpha, padded)
+    nz = cv2.findNonZero(full_alpha)
+    if nz is None:
+        return _cache_put(state.strokes, key, np.zeros((0, 0), dtype=np.uint8), _STROKE_CACHE_MAX)
+    x, y, w, h = cv2.boundingRect(nz)
+    result = full_alpha[y:y + h, x:x + w]
+    return _cache_put(state.strokes, key, result, _STROKE_CACHE_MAX)
 
 
 def _paste_bitmap(canvas: np.ndarray, bitmap_arr: np.ndarray, x: int, y: int, mode: str = 'max'):
@@ -815,9 +832,17 @@ def _line_surface(line_text: str, font_size: int, border_size: int, stroke_ratio
         return None
     if border_size > 0:
         stroke_px = max(int(stroke_ratio * font_size), 1)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (stroke_px * 2 + 1, stroke_px * 2 + 1))
-        border_alpha = cv2.dilate(fill_alpha, kernel)
-        border_left, border_top = fill_left - stroke_px, fill_top - stroke_px
+        # 距离变换描边：贴合字形轮廓，比椭圆膨胀更精准
+        pad = stroke_px + 1
+        padded = cv2.copyMakeBorder(fill_alpha, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=0)
+        fg_mask = (padded >= 128).astype(np.uint8) * 255
+        bg_mask = cv2.bitwise_not(fg_mask)
+        dist = cv2.distanceTransform(bg_mask, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+        stroke_region = np.clip((stroke_px + 0.5 - dist), 0.0, 1.0)
+        stroke_alpha_padded = (stroke_region * 255).astype(np.uint8)
+        border_alpha_padded = np.maximum(stroke_alpha_padded, padded)
+        border_alpha = border_alpha_padded  # 含 pad，坐标需偏移
+        border_left, border_top = fill_left - pad, fill_top - pad
         left = min(fill_left, border_left)
         top = min(fill_top, border_top)
         right = max(fill_left + fill_alpha.shape[1], border_left + border_alpha.shape[1])
