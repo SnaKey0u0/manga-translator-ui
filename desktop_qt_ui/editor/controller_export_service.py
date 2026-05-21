@@ -408,9 +408,10 @@ class EditorControllerExportService:
         inpainted_image: Optional[object] = None,
     ) -> str:
         json_path = self.resolve_editor_json_path(source_path)
+        # 写盘的 region 保持 center=源区域中心、white_frame_rect_local 相对该中心。
+        # 给后端 load_text 渲染用的副本（_build_enhanced_regions）才需要把
+        # center 平移到白框中心；两条路径不能共用，否则下次编辑器加载会再叠加一次偏移。
         json_regions = [dict(region) for region in regions]
-        for region in json_regions:
-            self.apply_white_frame_center(region)
         export_service._save_regions_data_with_path(json_regions, json_path, source_path, mask, config_dict)
         self.save_current_inpainted_image(
             source_path,
