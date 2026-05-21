@@ -53,7 +53,7 @@ def _resolve_preview_size(width: int, height: int, max_pixels: Optional[int]) ->
     return target_width, target_height
 
 
-def _qimage_from_array(array: np.ndarray) -> QImage:
+def _qimage_from_array(array: np.ndarray, *, premultiplied: bool = False) -> QImage:
     array = _ensure_uint8(array, copy=False)
     if array.ndim == 2:
         height, width = array.shape
@@ -67,7 +67,11 @@ def _qimage_from_array(array: np.ndarray) -> QImage:
 
     height, width, channels = array.shape
     if channels == 4:
-        image_format = QImage.Format.Format_RGBA8888
+        image_format = (
+            QImage.Format.Format_RGBA8888_Premultiplied
+            if premultiplied
+            else QImage.Format.Format_RGBA8888
+        )
     elif channels == 3:
         image_format = QImage.Format.Format_RGB888
     else:
@@ -80,6 +84,20 @@ def _qimage_from_array(array: np.ndarray) -> QImage:
         int(array.strides[0]),
         image_format,
     ).copy()
+
+
+def _resize_rgba_premultiplied(array: np.ndarray, target_w: int, target_h: int, interpolation) -> np.ndarray:
+    """RGBA 缩放前先预乘 alpha，避免边缘 RGB 与透明像素 (RGB=0) 混色产生黑边。
+
+    返回的数组是「预乘 alpha」格式，调用方需要用 Format_RGBA8888_Premultiplied 渲染。
+    """
+    rgba = array.astype(np.float32, copy=False)
+    alpha = rgba[..., 3:4] / 255.0
+    premul = np.empty_like(rgba)
+    premul[..., :3] = rgba[..., :3] * alpha
+    premul[..., 3:4] = rgba[..., 3:4]
+    resized = cv2.resize(premul, (target_w, target_h), interpolation=interpolation)
+    return np.clip(resized, 0, 255).astype(np.uint8, copy=False)
 
 
 def image_like_to_display_array(image: Any, *, copy: bool = False) -> Optional[np.ndarray]:
@@ -173,13 +191,20 @@ def build_display_image_frame(image: Any, *, max_pixels: Optional[int] = None) -
     else:
         source_height, source_width = array.shape[:2]
     preview_width, preview_height = _resolve_preview_size(source_width, source_height, max_pixels)
+    is_rgba = array.ndim == 3 and array.shape[2] == 4
+    premultiplied = False
     if (preview_width, preview_height) != (source_width, source_height):
         interpolation = cv2.INTER_AREA if preview_width < source_width or preview_height < source_height else cv2.INTER_LINEAR
-        array = cv2.resize(array, (preview_width, preview_height), interpolation=interpolation)
+        if is_rgba:
+            # 预乘 alpha 再缩放，避免透明像素 (RGB=0) 拉低边缘像素 → 黑边。
+            array = _resize_rgba_premultiplied(array, preview_width, preview_height, interpolation)
+            premultiplied = True
+        else:
+            array = cv2.resize(array, (preview_width, preview_height), interpolation=interpolation)
 
     array = _ensure_uint8(array, copy=False)
     return DisplayImageFrame(
-        qimage=_qimage_from_array(array),
+        qimage=_qimage_from_array(array, premultiplied=premultiplied),
         source_width=source_width,
         source_height=source_height,
         preview_width=preview_width,

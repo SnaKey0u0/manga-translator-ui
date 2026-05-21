@@ -141,19 +141,29 @@ class EditorControllerExportService:
                 self.controller._export_toast = toast_manager.show_info("正在导出...", duration=0)
 
             image_snapshot = self.controller._snapshot_image_for_export(image, "base image")
-            inpainted_snapshot = self.controller._snapshot_image_for_export(
-                self.model.get_inpainted_image(),
-                "inpainted image",
-            )
-            regions_snapshot = copy.deepcopy(regions)
-            mask_snapshot = None if mask is None else np.array(mask, copy=True)
-
             paint_overlay = self.model.get_paint_overlay_image()
             overlay_snapshot = None
             if paint_overlay is not None:
                 overlay_arr = np.asarray(paint_overlay)
                 if overlay_arr.ndim == 3 and overlay_arr.shape[2] == 4 and np.any(overlay_arr[..., 3]):
                     overlay_snapshot = overlay_arr.copy()
+
+            # 有画板涂层时，inpainted snapshot 就取「inpainted ⊕ 画板」合成图。
+            # 没有实时 inpainted 但磁盘上有旧 inpainted 时回退加载，
+            # 避免后端因拿不到 inpainted 而重跑修复、把画板涂层丢掉。
+            inpainted_base = self.model.get_inpainted_image()
+            if inpainted_base is None and overlay_snapshot is not None and source_path:
+                inpainted_base = self._load_existing_inpainted_for_compose(source_path)
+            if overlay_snapshot is not None and inpainted_base is not None:
+                composed = self.compose_image_with_overlay(inpainted_base, overlay_snapshot)
+                if composed is not None and composed is not inpainted_base:
+                    inpainted_base = composed
+            inpainted_snapshot = self.controller._snapshot_image_for_export(
+                inpainted_base,
+                "inpainted image",
+            )
+            regions_snapshot = copy.deepcopy(regions)
+            mask_snapshot = None if mask is None else np.array(mask, copy=True)
 
             return self.async_service.submit_task(
                 self.async_export_with_desktop_ui_service(
@@ -331,6 +341,21 @@ class EditorControllerExportService:
             self.logger.warning(f"保存彩色画笔图层失败: {e}")
             return None
 
+    def _load_existing_inpainted_for_compose(self, source_path: str):
+        """无实时 inpainted 预览时，从磁盘加载旧 inpainted 作为画板合成底图。"""
+        try:
+            existing_path = find_inpainted_path(source_path)
+            if not existing_path or not os.path.exists(existing_path):
+                return None
+            from PIL import Image as _PILImage
+
+            with _PILImage.open(existing_path) as fp:
+                fp.load()
+                return fp.copy()
+        except Exception as e:
+            self.logger.warning(f"加载磁盘 inpainted 作为画板底图失败: {e}")
+            return None
+
     @staticmethod
     def compose_image_with_overlay(
         base_image: Optional[object],
@@ -494,13 +519,9 @@ class EditorControllerExportService:
             else:
                 self.logger.warning("Exporting without source image path, skipped JSON persistence")
 
-            # 在交给后端渲染前，先把彩色画笔图层合成到修复底图上，
-            # 这样后端在复用 inpainted 图时文字会叠在用户涂抹的结果之上。
+            # inpainted_image 已在 export_image() 入口完成「inpainted ⊕ 画板」合成，
+            # 直接交给后端复用即可。
             render_inpainted_image = inpainted_image
-            if paint_overlay is not None and inpainted_image is not None:
-                composed = self.compose_image_with_overlay(inpainted_image, paint_overlay)
-                if composed is not None and composed is not inpainted_image:
-                    render_inpainted_image = composed
 
             def progress_callback(_message):
                 return None

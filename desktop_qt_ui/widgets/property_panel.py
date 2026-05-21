@@ -1850,17 +1850,24 @@ class PropertyPanel(QWidget):
 
     def sync_active_tool_from_model(self, tool: str):
         """当 model 的 active_tool 变化时，UI 同步高亮对应按钮并切换标签页。"""
-        mapping = {
-            'select': (self.select_button, 0),
-            'brush': (self.brush_button, 0),
-            'eraser': (self.eraser_button, 0),
-            'paint': (getattr(self, 'paint_brush_button', None), 1),
-            'paint_erase': (getattr(self, 'paint_eraser_button', None), 1),
-        }
-        info = mapping.get(tool)
-        if not info:
-            return
-        button, tab_index = info
+        # 'select' 在蒙版页和画板页都有按钮，按当前所在标签页决定亮哪个，
+        # 避免在画板页点击「选择」时被强制切回蒙版页。
+        if tool == 'select':
+            if self.paint_tab_widget.currentIndex() == 1:
+                button, tab_index = self.paint_select_button, 1
+            else:
+                button, tab_index = self.select_button, 0
+        else:
+            mapping = {
+                'brush': (self.brush_button, 0),
+                'eraser': (self.eraser_button, 0),
+                'paint': (getattr(self, 'paint_brush_button', None), 1),
+                'paint_erase': (getattr(self, 'paint_eraser_button', None), 1),
+            }
+            info = mapping.get(tool)
+            if not info:
+                return
+            button, tab_index = info
         if button is None:
             return
         try:
