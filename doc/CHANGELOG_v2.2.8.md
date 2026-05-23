@@ -4,6 +4,8 @@
 
 ## ✨ 新功能
 
+> 本节三项功能合并自社区 PR [#155](https://github.com/hgmzhn/manga-translator-ui/pull/155) by [@YHmuchen](https://github.com/YHmuchen)（合入时跳过了 PR 的单元测试与额外文档，本地重写了图标渲染、间距吸附实现和切图链路；详见后续"重构/性能优化"）。
+
 ### 编辑器：PS 风格对齐/分布工具栏
 
 - 工具栏新增 8 个矢量图标按钮：左/中/右对齐 + 顶/中/底对齐 + 垂直/水平间距分布
@@ -27,6 +29,8 @@
 
 ### 编辑器：A/D 切图防黑闪
 
+> PR [#155](https://github.com/hgmzhn/manga-translator-ui/pull/155) 用的"轻量清理"方案没解决 `image_like_to_qimage()` 在主线程同步阻塞 30-80 ms 的根因，且白名单清理 overlay 容易漏。本仓库重写了切图链路：
+
 - `ResourceManager` 既有 LRU 图像缓存（上限 5 张）现在同时持有 QImage：后台线程预转一次，命中即复用，主线程零阻塞
 - `on_image_changed` 用 "detach `_image_item` + 全量 `clear_all_state` + reattach + `setPixmap`" 模式：场景全清的同时复用旧 `QGraphicsPixmapItem`，新图就绪后原地替换
 - 整个切换被 `setUpdatesEnabled(False/True)` 包裹，viewport 不会看到中间空白帧
@@ -35,9 +39,11 @@
 
 ## 🔧 重构
 
-- 编辑器对齐工具栏图标由 QPainter 手画改为 SVG 资源 + `_themed_icon` 主题色注入（约 -150 行）
-- `_detect_spacing_snap` 4 方向 × 4 分支重复代码参数化为按轴循环（80 → 50 行），顺带修复第二候选 spec 的刻度线右端字段错位（原本会显示错位的参考间距标尺）
-- 编辑器工具栏新增中文硬编码全部走 `self._t()`，补完 6 个 locale（en/zh_CN/zh_TW/ja/ko/es）的对齐/分布翻译
+> 以下三项均在合并 PR [#155](https://github.com/hgmzhn/manga-translator-ui/pull/155) 基础上由本仓库追加：
+
+- 对齐工具栏图标由 PR 原有的 QPainter 手画改为 SVG 资源 + `_themed_icon` 主题色注入（约 -150 行）
+- PR 原有 `_detect_spacing_snap` 的 4 方向 × 4 分支重复代码参数化为按轴循环（80 → 50 行），顺带修复 PR 里第二候选 spec 的刻度线右端字段错位（原本会显示错位的参考间距标尺）
+- 工具栏 PR 新增的中文硬编码全部走 `self._t()`，补完 6 个 locale（en/zh_CN/zh_TW/ja/ko/es）的对齐/分布翻译
 
 ## 🐛 修复
 
@@ -45,4 +51,4 @@
 - 修复编辑器使用画板功能涂抹后导出时，画板涂层在最终导出图中丢失。
 - 修复画板涂层在编辑器预览中描边边缘显示为黑色（导出正常）。
 - 修复在画板页点击「选择」按钮时被强制切回蒙版页的问题。
-- 修复 `apply_white_frame_center` 写盘时只移动 `center` 而 `white_frame_rect_local` / `render_box_rect_local` 不同步平移，导致下次打开 JSON 看到区域位置漂移的问题。
+- 修复 `apply_white_frame_center` 写盘时只移动 `center` 而 `white_frame_rect_local` / `render_box_rect_local` 不同步平移，导致下次打开 JSON 看到区域位置漂移的问题（PR [#155](https://github.com/hgmzhn/manga-translator-ui/pull/155) 顺带带入的修复）。
