@@ -18,6 +18,9 @@ VERSION = '1.7.6'
 PYTHON_VERSION_MIN = (3, 12)
 PYTHON_VERSION_MAX = (3, 12)  # 仅支持Python 3.12,不支持3.13+
 
+# AMD APU HSA 架构伪装版本 (针对不支持的 gfx1103/gfx1150 核显)
+HSA_APU_JAILBREAK_VERSION = '11.0.0'
+
 # 路径配置
 PATH_ROOT = Path(__file__).parent.parent
 stored_commit_hash = None
@@ -1475,14 +1478,14 @@ except:
                 
         if target_gfx in ['gfx1103', 'gfx1150']:
             print('\n[INFO] 检测到 AMD APU 核显 (780M/890M等)')
-            print('       正在自动注入架构越狱环境变量: HSA_OVERRIDE_GFX_VERSION=11.0.0 以启用核显加速...')
+            print(f'       正在自动注入架构越狱环境变量: HSA_OVERRIDE_GFX_VERSION={HSA_APU_JAILBREAK_VERSION} 以启用核显加速...')
             print('       [提示] 核显显存优化建议:')
             print('              由于 AMD 核显共享内存机制，若您的 BIOS 预分配显存过低（如 512MB），')
             print('              运行本地模型时极易遭遇 "Out of Memory" 报错或卡顿。')
             print('              💡 建议：进入您的电脑 BIOS 或品牌控制软件，')
             print('              将 "UMA Frame Buffer Size" (预分配显存) 修改为 4G、8G 或更高，')
             print('              以获得最稳定、最流畅的核显加速体验！\n')
-            os.environ['HSA_OVERRIDE_GFX_VERSION'] = '11.0.0'
+            os.environ['HSA_OVERRIDE_GFX_VERSION'] = HSA_APU_JAILBREAK_VERSION
 
     # 返回 AMD PyTorch 相关信息
     return use_amd_pytorch, amd_gfx_version
