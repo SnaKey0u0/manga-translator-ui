@@ -54,3 +54,4 @@
 - 修复画板涂层在编辑器预览中描边边缘显示为黑色（导出正常）。
 - 修复在画板页点击「选择」按钮时被强制切回蒙版页的问题。
 - 修复 `apply_white_frame_center` 写盘时只移动 `center` 而 `white_frame_rect_local` / `render_box_rect_local` 不同步平移，导致下次打开 JSON 看到区域位置漂移的问题（来自 PR [#155](https://github.com/hgmzhn/manga-translator-ui/pull/155)）。
+- 修复并行模式修复线程使用未过滤 `text_regions` 的问题：翻译过滤后对比原始/过滤后 region 集合，有差异则触发修复重做（基于过滤后的 regions 重新生成 mask 并修复），避免被过滤掉的框在最终图上留下空白补丁。
