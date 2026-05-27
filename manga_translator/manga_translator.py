@@ -401,6 +401,10 @@ class MangaTranslator:
         # 确保过滤列表文件存在
         try:
             ensure_filter_list_exists()
+            from .rendering.text_replacements import ensure_text_replacements_exists
+            ensure_text_replacements_exists()
+            from .utils.translation_template import ensure_translation_template_exists
+            ensure_translation_template_exists()
         except Exception:
             pass
 

@@ -40,7 +40,7 @@
   "Select a font to preview": "Select a font to preview",
   "Manage and preview fonts for text rendering": "Manage and preview fonts for text rendering",
   "Replacement Rules": "Replacement Rules",
-  "Manage text replacement rules applied to translations before rendering": "Manage text replacement rules applied to translations before rendering",
+  "Manage text replacement rules applied to translations before rendering": "Manage text replacement rules applied to translations before rendering (Execution order: Common ➔ Horizontal/Vertical. Rules execute top-to-bottom; replaced text can be replaced again by subsequent rules)",
   "Add Rule": "Add Rule",
   "Toggle All": "Select All",
   "Select All": "Select All",

@@ -39,6 +39,13 @@
 - 自动设 `max_tokens: 2048`(避免 OpenRouter 默认 32768 触发 402 余额不足;同样可被用户覆盖)
 - 模型示例:`google/gemini-3-pro-image-preview` / `google/gemini-2.5-flash-image`,`image_config` 等专有参数走 `custom_api_params.json` 顶层透传即可
 
+### 核心/UI：配置文件丢失自动补全
+
+- CLI/Web/Qt 启动时自动检测缺失的本地配置文件，并通过内置模板自动生成
+- 涵盖的文件包括：`text_replacements.yaml`（文本替换规则）、`translation_template.json`（导出原文模板）、`filter_list.json`、`custom_api_params.json` 及各类 AI 提示词 YAML
+- 修改 `doc/SETTINGS.md` 和 `.gitignore`，让生成的配置文件不再被 Git 错误追踪，解决版本冲突问题
+- `text_replacements.yaml` 竖排规则（vertical）新增“六点变三点省略号”替换支持
+
 ## 🚀 性能优化
 
 ### 编辑器：A/D 切图防黑闪（来自 PR [#155](https://github.com/hgmzhn/manga-translator-ui/pull/155)，本仓库重写实现）

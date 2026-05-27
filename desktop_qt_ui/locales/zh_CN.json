@@ -40,7 +40,7 @@
   "Select a font to preview": "选择一个字体以预览",
   "Manage and preview fonts for text rendering": "管理和预览用于文本渲染的字体",
   "Replacement Rules": "替换规则",
-  "Manage text replacement rules applied to translations before rendering": "管理渲染前应用到译文的文本替换规则",
+  "Manage text replacement rules applied to translations before rendering": "管理渲染前应用到译文的文本替换规则（执行顺序：Common通用 ➔ 横/竖排。规则由上到下逐条执行，前一条替换出的新文字，若符合条件会被后面的规则再次替换）",
   "Add Rule": "添加规则",
   "Toggle All": "全部选中",
   "Select All": "全部选中",

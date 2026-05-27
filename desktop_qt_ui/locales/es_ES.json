@@ -40,7 +40,7 @@
   "Select a font to preview": "Seleccione una fuente para previsualizar",
   "Manage and preview fonts for text rendering": "Gestionar y previsualizar fuentes para renderizado de texto",
   "Replacement Rules": "Reglas de Reemplazo",
-  "Manage text replacement rules applied to translations before rendering": "Gestionar reglas de reemplazo de texto aplicadas a traducciones antes del renderizado",
+  "Manage text replacement rules applied to translations before rendering": "Gestionar reglas de reemplazo de texto aplicadas a traducciones antes del renderizado (Orden: Common ➔ Horizontal/Vertical. Las reglas se ejecutan de arriba a abajo; el texto reemplazado puede volver a ser reemplazado por reglas posteriores)",
   "Add Rule": "Añadir Regla",
   "Toggle All": "Seleccionar Todo",
   "Select All": "Seleccionar Todo",

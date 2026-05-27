@@ -40,7 +40,7 @@
   "Select a font to preview": "プレビューするフォントを選択",
   "Manage and preview fonts for text rendering": "テキストレンダリング用のフォントを管理・プレビュー",
   "Replacement Rules": "置換ルール",
-  "Manage text replacement rules applied to translations before rendering": "レンダリング前に翻訳テキストに適用する置換ルールを管理",
+  "Manage text replacement rules applied to translations before rendering": "レンダリング前に翻訳テキストに適用する置換ルールを管理（実行順序：Common(共通) ➔ 横書き/縦書き。ルールは上から順に実行され、置換されたテキストが後続のルールで再度置換される場合があります）",
   "Add Rule": "ルール追加",
   "Toggle All": "全選択",
   "Select All": "全選択",
