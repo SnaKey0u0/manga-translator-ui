@@ -6,6 +6,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QFileDialog
 from services import get_config_service, get_logger
 from widgets.folder_dialog import select_folders
+from widgets.file_list_view import natural_sort_key
 
 
 class EditorLogic(QObject):
@@ -66,6 +67,9 @@ class EditorLogic(QObject):
         if not files:
             return
         
+        # 统一进行自然排序
+        files = sorted(files, key=natural_sort_key)
+        
         # 使用新模型添加文件
         added_items = self.file_model.add_files(files)
         
@@ -102,7 +106,9 @@ class EditorLogic(QObject):
                 if 'manga_translator_work' in root:
                     continue
                     
-                for f in sorted(files):
+                dirs.sort(key=natural_sort_key)
+                
+                for f in sorted(files, key=natural_sort_key):
                     if os.path.splitext(f)[1].lower() in image_extensions:
                         file_path = os.path.join(root, f)
                         files_to_add.append(file_path)

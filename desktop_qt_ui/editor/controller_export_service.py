@@ -165,6 +165,10 @@ class EditorControllerExportService:
             regions_snapshot = copy.deepcopy(regions)
             mask_snapshot = None if mask is None else np.array(mask, copy=True)
 
+            # 乐观更新：提交异步任务前先打快照，避免 Ctrl+Q 后立刻切图弹"未保存的编辑"。
+            # 失败时 success_callback 不会再次刷新快照，用户重新 Ctrl+Q 即可。
+            self.save_export_snapshot()
+
             return self.async_service.submit_task(
                 self.async_export_with_desktop_ui_service(
                     image_snapshot,
