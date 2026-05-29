@@ -77,6 +77,7 @@ class ConcurrentPipeline:
         # 控制标志
         self.stop_workers = False
         self.detection_ocr_done = False  # 检测+OCR是否全部完成
+        self.translation_thread_done = False  # 翻译线程是否已结束（不会再投递 redo 修复任务）
         self.has_critical_error = False  # 是否发生严重错误
         self.critical_error_msg = None   # 严重错误信息
         self.critical_error_exception = None  # 原始异常对象
@@ -489,6 +490,7 @@ class ConcurrentPipeline:
         except PipelineAbortError:
             self.stop_workers = True
         finally:
+            self.translation_thread_done = True
             logger.info("[翻译线程] 停止")
     
     async def _process_translation_batch(self, batch: List[tuple]):
@@ -618,11 +620,17 @@ class ConcurrentPipeline:
                         logger.warning(f"[修复] 检测到严重错误，停止修复 (已完成 {inpaint_count}/{self.total_images})")
                         break
                     
-                    # 检查是否完成所有任务
-                    if self.detection_ocr_done and self.inpaint_queue.empty():
+                    # 检查是否完成所有任务。
+                    # 翻译线程可能在首轮修复队列清空后才发现 region 被过滤，
+                    # 并投递 redo 修复任务；必须等翻译线程结束后才可退出。
+                    if (
+                        self.detection_ocr_done
+                        and self.translation_thread_done
+                        and self.inpaint_queue.empty()
+                    ):
                         await asyncio.sleep(0.5)
                         self._check_cancelled_or_raise("修复", f"已完成 {inpaint_count}/{self.total_images}")
-                        if self.inpaint_queue.empty():
+                        if self.translation_thread_done and self.inpaint_queue.empty():
                             logger.info(f"[修复线程] 所有任务已完成 ({inpaint_count}/{self.total_images})")
                             break
                     
@@ -1006,6 +1014,7 @@ class ConcurrentPipeline:
         self.base_contexts.clear()
         self.failed_images.clear()
         self.detection_ocr_done = False
+        self.translation_thread_done = False
         self.stop_workers = False
         self.has_critical_error = False
         self.critical_error_msg = None
