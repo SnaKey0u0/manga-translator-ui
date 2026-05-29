@@ -329,15 +329,32 @@ vertical:
     replace: "·"
 """
 
+def invalidate_replacements_cache(file_path: Optional[str] = None) -> None:
+    """清理替换规则缓存，让后续渲染重新读取文件。"""
+    if file_path is None:
+        file_path = _DEFAULT_REPLACEMENTS_PATH
+    _replacements_cache.pop(file_path, None)
+
+
+def reset_text_replacements_to_default(file_path: Optional[str] = None) -> str:
+    """将文本替换规则配置写回内置默认模板。"""
+    if file_path is None:
+        file_path = _DEFAULT_REPLACEMENTS_PATH
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(_DEFAULT_REPLACEMENTS_YAML)
+    invalidate_replacements_cache(file_path)
+    return file_path
+
+
 def ensure_text_replacements_exists() -> str:
     """确保文本替换规则配置文件存在，如果不存在则使用内置模板创建。"""
     if os.path.exists(_DEFAULT_REPLACEMENTS_PATH):
         return _DEFAULT_REPLACEMENTS_PATH
     
-    os.makedirs(os.path.dirname(_DEFAULT_REPLACEMENTS_PATH), exist_ok=True)
     try:
-        with open(_DEFAULT_REPLACEMENTS_PATH, 'w', encoding='utf-8') as f:
-            f.write(_DEFAULT_REPLACEMENTS_YAML)
+        reset_text_replacements_to_default(_DEFAULT_REPLACEMENTS_PATH)
         logger.info(f"已创建文本替换规则文件: {_DEFAULT_REPLACEMENTS_PATH}")
     except Exception as e:
         logger.error(f"创建文本替换规则文件失败: {e}")
