@@ -48,10 +48,10 @@ common:
     replace: "·"
     comment: "统一中点符号"
 
-  - pattern: '\.{3,}'
+  - pattern: '\.{3}'
     replace: '…'
     regex: true
-    comment: "三个以上点号合并为省略号"
+    comment: "三个英文句号转换为一个省略号"
 
   - pattern: '\s{2,}'
     replace: ' '

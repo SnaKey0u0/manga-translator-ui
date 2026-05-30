@@ -110,27 +110,14 @@ def CJK_Compatibility_Forms_translate(cdpt: str, direction: int):
     return cdpt, 0
 
 
-def _compact_period_run(match: re.Match[str]) -> str:
-    dots = match.group(0)
-    ellipsis_count, remainder = divmod(len(dots), 3)
-    return ('…' * ellipsis_count) + ('.' * remainder)
-
-
 def compact_special_symbols(text: str, *, convert_ascii_ellipsis: bool = True) -> str:
-    text = text or ''
-    if not convert_ascii_ellipsis:
-        return text
-    # Preserve author-entered spaces. Only normalize runs of ASCII periods so
-    # vertical rendering and explicit ellipsis compaction can share one path.
-    return re.sub(r'\.{3,}', _compact_period_run, text)
+    # 渲染层不再做字符替换，统一交给外部的 text_replacements.yaml 规则处理
+    return text or ''
 
 
 def normalize_vertical_ellipsis_text(text: str) -> str:
-    text = text or ''
-    text = text.replace('……', '⋮')
-    text = text.replace('…', '⋮')
-    text = text.replace('⋯', '︙')
-    return text
+    # 渲染层不再做字符替换，统一交给外部的 text_replacements.yaml 规则处理
+    return text or ''
 
 
 def auto_add_horizontal_tags(text: str) -> str:
