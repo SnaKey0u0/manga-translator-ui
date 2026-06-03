@@ -343,7 +343,6 @@ class MangaTranslator:
     def __init__(self, params: dict = {}):
         self.pre_dict = params.get('pre_dict', None)
         self.post_dict = params.get('post_dict', None)
-        self.skip_text_replacements = params.get('skip_text_replacements', False)
         self.font_path = None
         self.kernel_size = None
         self.device = None
@@ -1319,7 +1318,7 @@ class MangaTranslator:
     def _load_text_and_regions_from_file(self, image_path: str, config: Config):
         """加载翻译数据，支持新的目录结构和向后兼容"""
         if not image_path:
-            return None, None, False, True
+            return None, None, False, True, False
 
         # 使用path_manager查找JSON文件（新位置优先）
         text_file_path = find_json_path(image_path)
@@ -1332,10 +1331,10 @@ class MangaTranslator:
                 # If the old format is found, load from it
                 regions = self._load_text_and_regions_from_txt_file(image_path)
                 # Since old format doesn't have mask, we return None for mask and refined status
-                return regions, None, False, True
+                return regions, None, False, True, False
             else:
                 logger.info(f"Translation file not found for: {image_path}")
-                return None, None, False, True
+                return None, None, False, True, False
 
         try:
             # Force UTF-8 encoding to handle potential file encoding issues
@@ -1343,18 +1342,19 @@ class MangaTranslator:
                 data = json.load(f)
         except Exception as e:
             logger.error(f"Failed to read or parse translation file {text_file_path}: {e}")
-            return None, None, False, True
+            return None, None, False, True, False
 
         # Don't check the image key. Assume the user knows what they are doing
         # and that the first entry in the JSON is the one they want to load.
         if not data or len(data.values()) == 0:
             logger.warning(f"JSON file {text_file_path} is empty or invalid.")
-            return None, None, False, True
+            return None, None, False, True, False
 
         # Get the first value from the dictionary, regardless of the key.
         image_data = next(iter(data.values()))
         mask_is_refined = False
         skip_font_scaling = True
+        skip_text_replacements = False
 
         # Handle both old and new JSON formats
         if isinstance(image_data, list):
@@ -1370,9 +1370,13 @@ class MangaTranslator:
                 image_data.get('skip_font_scaling', True),
                 default=True,
             )
+            skip_text_replacements = _parse_skip_font_scaling_flag(
+                image_data.get('skip_text_replacements', False),
+                default=False,
+            )
         else:
             logger.warning(f"Invalid data format in JSON file {text_file_path}.")
-            return None, None, False, True
+            return None, None, False, True, False
 
         regions = []
         for region_data in regions_data:
@@ -1473,7 +1477,7 @@ class MangaTranslator:
         if mask_raw is not None:
             logger.info(f"Loaded mask_raw from {text_file_path}")
 
-        return regions, mask_raw, mask_is_refined, skip_font_scaling
+        return regions, mask_raw, mask_is_refined, skip_font_scaling, skip_text_replacements
 
     def _load_text_and_regions_from_txt_file(self, image_path: str) -> Optional[List[TextBlock]]:
         """
@@ -3054,7 +3058,13 @@ class MangaTranslator:
             Renderer.gemini_renderer,
         )
 
-    async def _run_text_rendering(self, config: Config, ctx: Context, skip_font_scaling: bool = False):
+    async def _run_text_rendering(
+        self,
+        config: Config,
+        ctx: Context,
+        skip_font_scaling: bool = False,
+        skip_text_replacements: bool = False,
+    ):
         # ✅ 检查停止标志
         await asyncio.sleep(0)
         self._check_cancelled()
@@ -3076,7 +3086,15 @@ class MangaTranslator:
         else:
             # Request debug image for balloon_fill mode when verbose
             need_debug_img = self.verbose and config.render.layout_mode == 'balloon_fill'
-            result = await dispatch_rendering(render_base_img, ctx.text_regions, config, ctx.img_rgb, return_debug_img=need_debug_img, skip_font_scaling=skip_font_scaling)
+            result = await dispatch_rendering(
+                render_base_img,
+                ctx.text_regions,
+                config,
+                ctx.img_rgb,
+                return_debug_img=need_debug_img,
+                skip_font_scaling=skip_font_scaling,
+                skip_text_replacements=skip_text_replacements or bool(getattr(ctx, 'skip_text_replacements', False)),
+            )
             
             # Handle debug image if returned
             if need_debug_img and isinstance(result, tuple):
@@ -3513,7 +3531,7 @@ class MangaTranslator:
                             ctx.config = config
                             
                             # 加载翻译数据
-                            loaded_regions, loaded_mask, mask_is_refined, skip_font_scaling = self._load_text_and_regions_from_file(image_name, config)
+                            loaded_regions, loaded_mask, mask_is_refined, skip_font_scaling, skip_text_replacements = self._load_text_and_regions_from_file(image_name, config)
                             if loaded_regions is None:
                                 json_path = os.path.splitext(image_name)[0] + '_translations.json' if image_name else 'unknown'
                                 raise FileNotFoundError(f"Translation file not found or invalid: {json_path}")
@@ -3526,6 +3544,7 @@ class MangaTranslator:
                             
                             ctx.text_regions = loaded_regions
                             ctx.skip_font_scaling = skip_font_scaling
+                            ctx.skip_text_replacements = skip_text_replacements
                             
                             existing_inpainted_path = find_inpainted_path(image_name) if image_name else None
 
@@ -3726,7 +3745,12 @@ class MangaTranslator:
                                 
                                 # Rendering - load_text按JSON中的skip_font_scaling控制：True=跳过字体缩放，False=执行字体缩放
                                 await self._report_progress('rendering')
-                                ctx.img_rendered = await self._run_text_rendering(config, ctx, skip_font_scaling=skip_font_scaling)
+                                ctx.img_rendered = await self._run_text_rendering(
+                                    config,
+                                    ctx,
+                                    skip_font_scaling=skip_font_scaling,
+                                    skip_text_replacements=skip_text_replacements,
+                                )
                                 
                                 await self._report_progress('finished', True)
                                 ctx.result = dump_image(ctx.input, ctx.img_rendered, ctx.img_alpha)
@@ -3818,7 +3842,7 @@ class MangaTranslator:
                             ctx.config = config
                             ctx.from_lang = 'auto'
 
-                            loaded_regions, loaded_mask, mask_is_refined, skip_font_scaling = self._load_text_and_regions_from_file(image_name, config)
+                            loaded_regions, loaded_mask, mask_is_refined, skip_font_scaling, _skip_text_replacements = self._load_text_and_regions_from_file(image_name, config)
                             if loaded_regions is None:
                                 json_path = find_json_path(image_name) if image_name else None
                                 if not json_path and image_name:

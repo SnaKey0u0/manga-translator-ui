@@ -377,7 +377,14 @@ class ExportService:
         """保存区域数据到JSON文件，确保格式与TextBlock兼容（用于导出）"""
         # 使用文件名作为键（向后兼容）
         image_key = os.path.splitext(os.path.basename(json_path.replace('_translations.json', '')))[0]
-        self._save_regions_data_internal(regions_data, json_path, image_key, mask, config)
+        self._save_regions_data_internal(
+            regions_data,
+            json_path,
+            image_key,
+            mask,
+            config,
+            skip_text_replacements=True,
+        )
 
     def _normalize_font_path_for_save(self, font_path: str) -> str:
         """Normalize font path to portable relative form when possible."""
@@ -403,7 +410,15 @@ class ExportService:
             return font_path.replace('\\', '/')
         return f"fonts/{font_path}".replace('\\', '/')
     
-    def _save_regions_data_internal(self, regions_data: List[Dict[str, Any]], json_path: str, image_key: str, mask: Optional[np.ndarray] = None, config: Optional[Dict[str, Any]] = None):
+    def _save_regions_data_internal(
+        self,
+        regions_data: List[Dict[str, Any]],
+        json_path: str,
+        image_key: str,
+        mask: Optional[np.ndarray] = None,
+        config: Optional[Dict[str, Any]] = None,
+        skip_text_replacements: bool = False,
+    ):
         """保存区域数据到JSON文件的内部实现"""
         # 获取超分倍率，用于放大坐标
         upscale_ratio = 1
@@ -422,12 +437,6 @@ class ExportService:
             # 确保必要字段存在
             if 'translation' not in region_copy:
                 region_copy['translation'] = region_copy.get('text', '')
-            
-            # 保留富文本信息（如果存在）
-            # rich_text 字段包含 HTML 格式的文本，保存了字体大小、颜色、粗体、斜体等格式
-            # 如果没有富文本格式，该字段为空字符串或不存在
-            if 'rich_text' not in region_copy:
-                region_copy['rich_text'] = ''
             
             # 确保lines字段存在且格式正确
             if 'lines' not in region_copy:
@@ -579,6 +588,8 @@ class ExportService:
             formatted_data[image_key]['mask_raw'] = mask_base64
             formatted_data[image_key]['mask_is_refined'] = True  # 标记为已精炼的蒙版，跳过后端的蒙版优化
             self.logger.info("蒙版已保存（base64编码），标记为已精炼，后端将跳过蒙版优化")
+        if skip_text_replacements:
+            formatted_data[image_key]['skip_text_replacements'] = True
 
         # 添加调试信息
         self.logger.info(f"保存区域数据到: {json_path}")
@@ -733,7 +744,6 @@ class ExportService:
         translator_params.update(config)
         translator_params['load_text'] = True  # 关键：启用加载文本模式
         translator_params['save_text'] = False  # 不保存文本
-        translator_params['skip_text_replacements'] = True  # 编辑器导出跳过文本替换规则
         
         # 添加调试日志
         self.logger.info(f"Config keys: {list(config.keys())}")

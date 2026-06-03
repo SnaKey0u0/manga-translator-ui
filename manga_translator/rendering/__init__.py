@@ -2094,7 +2094,8 @@ async def dispatch(
     config: Config = None,
     original_img: np.ndarray = None,
     return_debug_img: bool = False,
-    skip_font_scaling: bool = False
+    skip_font_scaling: bool = False,
+    skip_text_replacements: bool = False,
     ):
 
     if config is None:
@@ -2122,18 +2123,19 @@ async def dispatch(
         dst_points_list = result
         debug_img = None
 
-    # [BR]/<H> 标记已加完,在画字之前备份 translation_raw + 跑替换规则。
-    # apply_replacements 内部 protect 了 [BR]/<H>/<br>/【BR】,字符替换不会破坏标记;
-    # 画字用替换后的字符串 → 图上字符也经过规则替换;raw 是替换前 + 含完整标记。
-    from .text_replacements import apply_replacements, load_replacements
-    _repl_rules = load_replacements()
-    for _region in text_regions:
-        if not _region.translation:
-            continue
-        if not getattr(_region, 'translation_raw', ''):
-            _region.translation_raw = _region.translation
-        _direction = 1 if _region.vertical else 0
-        _region.translation = apply_replacements(_region.translation, _direction, _repl_rules)
+    if not skip_text_replacements:
+        # [BR]/<H> 标记已加完,在画字之前备份 translation_raw + 跑替换规则。
+        # apply_replacements 内部 protect 了 [BR]/<H>/<br>/【BR】,字符替换不会破坏标记;
+        # 画字用替换后的字符串 → 图上字符也经过规则替换;raw 是替换前 + 含完整标记。
+        from .text_replacements import apply_replacements, load_replacements
+        _repl_rules = load_replacements()
+        for _region in text_regions:
+            if not _region.translation:
+                continue
+            if not getattr(_region, 'translation_raw', ''):
+                _region.translation_raw = _region.translation
+            _direction = 1 if _region.vertical else 0
+            _region.translation = apply_replacements(_region.translation, _direction, _repl_rules)
 
     for region_idx, (region, dst_points) in enumerate(tqdm(zip(text_regions, dst_points_list), '[render]', total=len(text_regions))):
         # 保存缩放算法计算的 dst_points 到 region，供 PSD 导出使用
@@ -2230,44 +2232,10 @@ def render(
     if getattr(region, 'adjust_bg_color', True):
         fg, bg = fg_bg_compare(fg, bg)
 
-    # Centralized text preprocessing
-    # 检查是否有富文本，并标记给渲染器
-    has_rich_text = hasattr(region, 'rich_text') and region.rich_text
-
-    if has_rich_text:
-        # 有富文本，从 HTML 中提取纯文本（用于非 Qt 渲染器）
-        from html import unescape
-        text = region.rich_text
-        
-        # 1. 还原特殊标记
-        text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
-        text = text.replace('<!--H_START-->', '<H>')
-        text = text.replace('<!--H_END-->', '</H>')
-        
-        # 2. 移除所有 HTML 标签（保留 <H> 和 </H>）
-        # 先保护 <H> 标签
-        text = text.replace('<H>', '___H_START___')
-        text = text.replace('</H>', '___H_END___')
-        
-        # 移除其他 HTML 标签
-        text = re.sub(r'<[^>]+>', '', text)
-        
-        # 还原 <H> 标签
-        text = text.replace('___H_START___', '<H>')
-        text = text.replace('___H_END___', '</H>')
-        
-        # 3. 解码 HTML 实体
-        text = unescape(text)
-        
-        # 4. 清理多余的空白
-        text_to_render = text.strip()
-    else:
-        # 没有富文本，使用普通文本
-        text_to_render = region.get_translation_for_rendering()
-        # 将所有BR标记转换为\n用于渲染
-        has_br_in_text = bool(re.search(r'(\[BR\]|<br>|【BR】)', text_to_render, flags=re.IGNORECASE))
-        if has_br_in_text:
-            text_to_render = re.sub(r'\s*(\[BR\]|<br>|【BR】)\s*', '\n', text_to_render, flags=re.IGNORECASE)
+    text_to_render = region.get_translation_for_rendering()
+    has_br_in_text = bool(re.search(r'(\[BR\]|<br>|【BR】)', text_to_render, flags=re.IGNORECASE))
+    if has_br_in_text:
+        text_to_render = re.sub(r'\s*(\[BR\]|<br>|【BR】)\s*', '\n', text_to_render, flags=re.IGNORECASE)
 
     if disable_font_border :
         bg = None
@@ -2398,53 +2366,9 @@ def render(
 
     src_points = np.array([[0, 0], [box.shape[1], 0], [box.shape[1], box.shape[0]], [0, box.shape[0]]]).astype(np.float32)
 
-    # 智能边界调整：检查文本是否超出图片边界
+    # 文字框允许超出画布；最终只把画布内的有效像素合成回原图。
+    # 不在这里按坐标分量 clip 四角点，否则会压缩/扭曲文本，并造成预览与导出不一致。
     img_h, img_w = img.shape[:2]
-    x, y, w, h = cv2.boundingRect(np.round(dst_points[0]).astype(np.int32))
-    
-    adjusted = False
-    adjusted_dst_points = dst_points.copy()
-    
-    # 获取四个角点的坐标
-    pts = adjusted_dst_points[0].copy()  # shape: (4, 2)
-    
-    # 检查每个边是否超出，超出则缩回来
-    # 左边超出
-    min_x = pts[:, 0].min()
-    if min_x < 0:
-        # 把所有超出左边界的点拉回到0
-        pts[:, 0] = np.maximum(pts[:, 0], 0)
-        adjusted = True
-        logger.info(f"Left edge exceeded, clipped from {min_x:.1f} to 0")
-    
-    # 右边超出
-    max_x = pts[:, 0].max()
-    if max_x > img_w:
-        # 把所有超出右边界的点拉回到img_w
-        pts[:, 0] = np.minimum(pts[:, 0], img_w)
-        adjusted = True
-        logger.info(f"Right edge exceeded, clipped from {max_x:.1f} to {img_w}")
-    
-    # 上边超出
-    min_y = pts[:, 1].min()
-    if min_y < 0:
-        # 把所有超出上边界的点拉回到0
-        pts[:, 1] = np.maximum(pts[:, 1], 0)
-        adjusted = True
-        logger.info(f"Top edge exceeded, clipped from {min_y:.1f} to 0")
-    
-    # 下边超出
-    max_y = pts[:, 1].max()
-    if max_y > img_h:
-        # 把所有超出下边界的点拉回到img_h
-        pts[:, 1] = np.minimum(pts[:, 1], img_h)
-        adjusted = True
-        logger.info(f"Bottom edge exceeded, clipped from {max_y:.1f} to {img_h}")
-    
-    if adjusted:
-        adjusted_dst_points[0] = pts
-        new_x, new_y, new_w, new_h = cv2.boundingRect(np.round(pts).astype(np.int32))
-        logger.info(f"Text box adjusted to fit image: ({x}, {y}, {w}, {h}) -> ({new_x}, {new_y}, {new_w}, {new_h})")
 
     # 统一使用局部区域渲染，避免 OpenCV warpPerspective 的 32767 像素限制
     SHRT_MAX = 32767
@@ -2454,7 +2378,7 @@ def render(
         return img
     
     # 计算文字区域的边界框，添加边距
-    x_adj, y_adj, w_adj, h_adj = cv2.boundingRect(np.round(adjusted_dst_points[0]).astype(np.int32))
+    x_adj, y_adj, w_adj, h_adj = cv2.boundingRect(np.round(dst_points[0]).astype(np.int32))
     margin = max(w_adj, h_adj) // 2 + 100  # 添加足够的边距
     
     # 计算局部区域边界
@@ -2464,6 +2388,14 @@ def render(
     local_y2 = min(img_h, y_adj + h_adj + margin)
     local_w = local_x2 - local_x1
     local_h = local_y2 - local_y1
+
+    if local_w <= 0 or local_h <= 0:
+        logger.warning(
+            f"Text region completely outside image bounds: x={x_adj}, y={y_adj}, "
+            f"w={w_adj}, h={h_adj}, image_size=({img_w}, {img_h}). "
+            f"Text: '{region.translation[:50] if hasattr(region, 'translation') else 'N/A'}...'"
+        )
+        return img
     
     # 检查局部区域是否仍然超限
     if local_w > SHRT_MAX or local_h > SHRT_MAX:
@@ -2472,22 +2404,12 @@ def render(
         return img
     
     # 调整目标点到局部坐标系
-    local_dst_points = adjusted_dst_points.copy()
+    local_dst_points = dst_points.copy()
     local_dst_points[0, :, 0] -= local_x1
     local_dst_points[0, :, 1] -= local_y1
     
     # 重新计算变换矩阵
     M_local, _ = cv2.findHomography(src_points, local_dst_points[0], cv2.RANSAC, 5.0)
-
-    # 边界裁剪 (pts[:, 0] = np.minimum(...)/np.maximum(...)) 是按 x/y 分量独立 clip 的，
-    # 多个角点都越界时会被裁到同一边界值而重合，dst_points 退化成非可逆四边形，
-    # findHomography 算不出矩阵。此时回退用未裁剪的原始 dst_points —
-    # 局部区域已经裁剪到图内，warpPerspective 不会越界。
-    if M_local is None:
-        fallback_points = dst_points[0].copy().astype(np.float32)
-        fallback_points[:, 0] -= local_x1
-        fallback_points[:, 1] -= local_y1
-        M_local, _ = cv2.findHomography(src_points, fallback_points, cv2.RANSAC, 5.0)
 
     # 检查变换矩阵是否有效
     if M_local is None:

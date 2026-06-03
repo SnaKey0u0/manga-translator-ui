@@ -280,10 +280,21 @@ class MangaTranslatorWS(MangaTranslator):
             self._websocket = websocket
             return result
 
-    async def _run_text_rendering(self, config: Config, ctx: Context):
+    async def _run_text_rendering(
+        self,
+        config: Config,
+        ctx: Context,
+        skip_font_scaling: bool = False,
+        skip_text_replacements: bool = False,
+    ):
         render_mask = (ctx.mask > 0).astype(np.uint8)[:, :, None]
 
-        output = await super()._run_text_rendering(config, ctx)
+        output = await super()._run_text_rendering(
+            config,
+            ctx,
+            skip_font_scaling=skip_font_scaling,
+            skip_text_replacements=skip_text_replacements,
+        )
         render_mask[np.sum(ctx.img_rgb != output, axis=2) > 0] = 1
         ctx.render_mask = render_mask
         if self.verbose:

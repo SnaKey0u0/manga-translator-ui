@@ -88,7 +88,6 @@ class TextBlock(object):
                  italic: bool = False,
                  direction: str = 'auto',
                  alignment: str = 'auto',
-                 rich_text: str = "",
                  _bounding_rect: List = None,
                  default_stroke_width = 0.2,
                  font_weight = 50,
@@ -150,7 +149,6 @@ class TextBlock(object):
         self.bold: bool = bold
         self.underline: bool = underline
         self.italic: bool = italic
-        self.rich_text = rich_text
         self.line_spacing = line_spacing
         self.letter_spacing = letter_spacing
         self._alignment = alignment
