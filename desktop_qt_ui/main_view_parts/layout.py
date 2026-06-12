@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSlider,
     QSplitter,
     QStackedWidget,
     QTabWidget,
@@ -1093,37 +1094,72 @@ def create_font_page(self) -> QWidget:
     self.font_preview_card.setObjectName("section_card")
     self.font_preview_card.setFixedHeight(320)
     preview_card_layout = QVBoxLayout(self.font_preview_card)
-    preview_card_layout.setContentsMargins(12, 14, 12, 12)
+    preview_card_layout.setContentsMargins(16, 14, 16, 14)
     preview_card_layout.setSpacing(8)
 
+    # 1. Header Row (Font Filename + Font Size Indicator)
+    header_row = QHBoxLayout()
+    header_row.setSpacing(10)
     self.font_preview_name_label = QLabel(self._t("Select a font to preview"))
     self.font_preview_name_label.setObjectName("font_preview_name")
-    preview_card_layout.addWidget(self.font_preview_name_label)
+    header_row.addWidget(self.font_preview_name_label, 1)
+
+    self.font_preview_size_indicator = QLabel("24pt")
+    self.font_preview_size_indicator.setStyleSheet(
+        f"color: {get_current_theme_colors()['text_muted']}; font-size: 11px; font-weight: 600; font-family: monospace;"
+    )
+    header_row.addWidget(self.font_preview_size_indicator)
+    preview_card_layout.addLayout(header_row)
+
+    # 2. Control Toolbar (Custom Text Input + Size Slider)
+    toolbar_row = QHBoxLayout()
+    toolbar_row.setSpacing(12)
+
+    self.font_preview_input = QLineEdit()
+    self.font_preview_input.setPlaceholderText(self._t("Type custom text to preview..."))
+    self.font_preview_input.setClearButtonEnabled(True)
+    toolbar_row.addWidget(self.font_preview_input, 3)
+
+    self.font_preview_slider = QSlider(Qt.Orientation.Horizontal)
+    self.font_preview_slider.setRange(12, 64)
+    self.font_preview_slider.setValue(24)
+    self.font_preview_slider.setToolTip(self._t("Adjust preview size"))
+    toolbar_row.addWidget(self.font_preview_slider, 2)
+
+    preview_card_layout.addLayout(toolbar_row)
 
     preview_divider = QFrame()
     preview_divider.setFrameShape(QFrame.Shape.HLine)
     preview_divider.setObjectName("settings_desc_divider")
     preview_card_layout.addWidget(preview_divider)
 
-    # 多行预览，不同字号
+    # 3. Scrollable Specimen Area
+    self.font_preview_scroll = QScrollArea()
+    self.font_preview_scroll.setWidgetResizable(True)
+    self.font_preview_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+    
+    scroll_content = QWidget()
+    scroll_content.setStyleSheet("background: transparent;")
+    self.scroll_content_layout = QVBoxLayout(scroll_content)
+    self.scroll_content_layout.setContentsMargins(0, 4, 0, 4)
+    self.scroll_content_layout.setSpacing(10)
+
     self.font_preview_labels = []
-    preview_sizes = [12, 16, 22, 30]
-    preview_texts = [
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-        "abcdefghijklmnopqrstuvwxyz 0123456789",
-        "你好世界 こんにちは 안녕하세요",
-        "The quick brown fox jumps over the lazy dog",
-    ]
-    for size, text in zip(preview_sizes, preview_texts):
-        lbl = QLabel(text)
+    # Create 3 specimen labels representing different sizes/contents
+    for i in range(3):
+        lbl = QLabel()
         lbl.setObjectName("font_preview_text")
         lbl.setWordWrap(True)
-        lbl.setStyleSheet(_font_preview_style(size))
-        lbl.setProperty("previewSize", size)
-        preview_card_layout.addWidget(lbl)
+        lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.scroll_content_layout.addWidget(lbl)
         self.font_preview_labels.append(lbl)
 
-    preview_card_layout.addStretch()
+    self.scroll_content_layout.addStretch()
+    self.font_preview_scroll.setWidget(scroll_content)
+    preview_card_layout.addWidget(self.font_preview_scroll, 1)
+
+    self._current_preview_family = None
+    self._current_preview_style = None
     page_layout.addWidget(self.font_preview_card)
 
     # --- Signals ---
@@ -1134,6 +1170,8 @@ def create_font_page(self) -> QWidget:
     self.font_apply_button.clicked.connect(self._apply_selected_font)
     self.font_list_widget.itemDoubleClicked.connect(lambda _: self._apply_selected_font())
     self.font_list_widget.currentItemChanged.connect(self._on_font_selection_changed)
+    self.font_preview_input.textChanged.connect(self._update_font_preview)
+    self.font_preview_slider.valueChanged.connect(self._update_font_preview)
     return page
 
 
@@ -1784,12 +1822,11 @@ def _on_font_selection_changed(self, current, previous):
         return
 
     if not current:
+        self._current_preview_family = None
+        self._current_preview_style = None
         if hasattr(self, "font_preview_name_label"):
             self.font_preview_name_label.setText(self._t("Select a font to preview"))
-        for lbl in self.font_preview_labels:
-            size = lbl.property("previewSize") or 14
-            lbl.setStyleSheet(_font_preview_style(size))
-            lbl.setFont(self.font())
+        self._update_font_preview()
         return
 
     font_filename = _get_asset_item_filename(current)
@@ -1812,11 +1849,61 @@ def _on_font_selection_changed(self, current, previous):
     except Exception:
         pass
 
-    for lbl in self.font_preview_labels:
-        size = lbl.property("previewSize") or 14
+    self._current_preview_family = family_name
+    self._current_preview_style = style_name
+    self._update_font_preview()
+
+
+def _update_font_preview(self):
+    """根据当前输入的自定义文本、滑块字号、以及选中的字体，动态更新预览文本和大小"""
+    if not hasattr(self, "font_preview_labels"):
+        return
+
+    # 获取当前滑块的字号
+    base_size = 24
+    if hasattr(self, "font_preview_slider"):
+        base_size = self.font_preview_slider.value()
+
+    # 更新字号指示器
+    if hasattr(self, "font_preview_size_indicator"):
+        self.font_preview_size_indicator.setText(f"{base_size}pt")
+
+    # 获取自定义输入内容
+    custom_text = ""
+    if hasattr(self, "font_preview_input"):
+        custom_text = self.font_preview_input.text().strip()
+
+    # 获取缓存的字体信息
+    family_name = getattr(self, "_current_preview_family", None)
+    style_name = getattr(self, "_current_preview_style", None)
+
+    # 预设的预览文本与缩放比例
+    if custom_text:
+        preview_texts = [custom_text, custom_text, custom_text]
+        size_multipliers = [0.75, 1.1, 1.6]
+    else:
+        preview_texts = [
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",
+            "你好世界，这是一段华丽的字体预览！ こんにちは 안녕하세요",
+            "The quick brown fox jumps over the lazy dog",
+        ]
+        size_multipliers = [0.75, 1.1, 1.6]
+
+    for i, lbl in enumerate(self.font_preview_labels):
+        if i >= len(preview_texts):
+            break
+        text = preview_texts[i]
+        size = max(8, int(round(base_size * size_multipliers[i])))
+        
+        # 更新文本
+        lbl.setText(text)
+        
+        # 更新样式 (颜色与大小)
         lbl.setStyleSheet(_font_preview_style(size, family_name))
+        
+        # 应用字体
         if family_name:
-            preview_font = QFontDatabase.font(family_name, style_name or "", int(size))
+            preview_font = QFontDatabase.font(family_name, style_name or "", size)
             if style_name:
                 preview_font.setStyleName(style_name)
             if preview_font.family():

@@ -53,7 +53,8 @@ def _dialog_stylesheet() -> str:
     t = _tokens()
     return f"""
         QDialog {{
-            background: {t["bg_dialog"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                        stop:0 {t["bg_gradient_start"]}, stop:0.45 {t["bg_gradient_mid"]}, stop:1 {t["bg_gradient_end"]});
         }}
         QLabel {{
             color: {t["fg"]};
@@ -62,7 +63,7 @@ def _dialog_stylesheet() -> str:
         QLabel#dialog_title {{
             color: {t["fg_bright"]};
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 600;
         }}
         QLabel#dialog_subtitle {{
             color: {t["fg_dim"]};
@@ -70,8 +71,8 @@ def _dialog_stylesheet() -> str:
         }}
         QLabel#section_label {{
             color: {t["fg_bright"]};
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 13px;
+            font-weight: 600;
         }}
         QLabel#hint_label {{
             color: {t["fg_dim"]};
@@ -79,24 +80,26 @@ def _dialog_stylesheet() -> str:
             padding: 2px 0;
         }}
         QFrame#divider {{
-            background: {t["border"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {t["divider_line_start"]}, stop:1 {t["divider_line_end"]});
             max-height: 1px;
             border: none;
         }}
         QWidget#section_card {{
             background: {t["bg_card"]};
-            border: 1px solid {t["border"]};
-            border-radius: 12px;
+            border: 1px solid {t["border_card"]};
+            border-radius: 16px;
         }}
         QPlainTextEdit {{
             background: {t["bg_input"]};
             border: 1px solid {t["border"]};
-            border-radius: 8px;
+            border-radius: 12px;
             color: {t["fg"]};
             padding: 10px;
         }}
         QPlainTextEdit:focus {{
             border-color: {t["border_focus"]};
+            background: {t["bg_input_focus"]};
         }}
         QMenu {{
             background: {t["bg_dropdown"]};
@@ -125,37 +128,34 @@ def _dialog_stylesheet() -> str:
             background: {t["divider_sub_line"]};
         }}
         QTabWidget::pane {{
-            border: 1px solid {t["border"]};
-            border-radius: 10px;
-            background: {t["bg_card"]};
-            padding: 6px;
+            border: none;
+            background: transparent;
         }}
         QTabBar::tab {{
-            background: {t["soft_bg"]};
-            border: 1px solid {t["soft_border"]};
-            border-bottom: none;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-            color: {t["soft_text"]};
-            padding: 8px 14px;
-            margin-right: 3px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: {t["fg_dim"]};
+            padding: 6px 14px;
+            margin: 2px 3px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 500;
         }}
         QTabBar::tab:selected {{
-            background: {t["primary_bg"]};
-            border-color: {t["primary_border"]};
-            color: {t["primary_text"]};
+            background: {t["nav_checked_bg"]};
+            color: {t["text_bright"]};
+            font-weight: 600;
         }}
         QTabBar::tab:hover:!selected {{
-            background: {t["soft_hover"]};
+            background: {t["nav_hover_bg"]};
+            color: {t["text_accent"]};
         }}
         QPushButton {{
             min-height: 34px;
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 6px 14px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 500;
         }}
         QPushButton[role="soft"] {{
             background: {t["soft_bg"]};
@@ -164,17 +164,20 @@ def _dialog_stylesheet() -> str:
         }}
         QPushButton[role="soft"]:hover {{
             background: {t["soft_hover"]};
+            border-color: {t["border_input_hover"]};
         }}
         QPushButton[role="soft"]:pressed {{
             background: {t["soft_pressed"]};
         }}
         QPushButton[role="primary"] {{
-            background: {t["primary_bg"]};
-            border: 1px solid {t["primary_border"]};
-            color: {t["primary_text"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {t["cta_gradient_start"]}, stop:1 {t["cta_gradient_end"]});
+            border: 1px solid {t["cta_border"]};
+            color: {t["cta_text"]};
         }}
         QPushButton[role="primary"]:hover {{
-            background: {t["primary_hover"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {t["cta_hover_start"]}, stop:1 {t["cta_hover_end"]});
         }}
         QPushButton[role="primary"]:pressed {{
             background: {t["primary_pressed"]};

@@ -76,7 +76,7 @@ def _theme_tokens() -> Dict[str, str]:
 def _section_label_style() -> str:
     t = _theme_tokens()
     return (
-        f"color: {t['fg_bright']}; font-size: 13px; font-weight: 700; "
+        f"color: {t['fg_bright']}; font-size: 13px; font-weight: 600; "
         "padding: 4px 0 2px 0; background: transparent;"
     )
 
@@ -106,14 +106,14 @@ def _prompt_card_style() -> str:
         #prompt_preview_card {{
             background: {t["card_bg"]};
             border: 1px solid {t["card_border"]};
-            border-radius: 10px;
+            border-radius: 16px;
         }}
     """
 
 
 def _title_style(size: int) -> str:
     t = _theme_tokens()
-    return f"color: {t['fg_bright']}; font-size: {size}px; font-weight: 700; background: transparent;"
+    return f"color: {t['fg_bright']}; font-size: {size}px; font-weight: 600; background: transparent;"
 
 
 def _table_style(editable: bool = False) -> str:
@@ -125,6 +125,7 @@ def _table_style(editable: bool = False) -> str:
                 background: {t["bg_input_focus"]};
                 color: {t["fg"]};
                 border: 1px solid {t["editor_border"]};
+                border-radius: 6px;
                 padding: 2px 6px;
                 font-size: 12px;
             }}
@@ -133,13 +134,13 @@ def _table_style(editable: bool = False) -> str:
         QTableWidget {{
             background: {t["table_bg"]};
             border: 1px solid {t["table_border"]};
-            border-radius: 6px;
+            border-radius: 12px;
             color: {t["fg"]};
             gridline-color: {t["table_grid"]};
             font-size: 12px;
         }}
         QTableWidget::item {{
-            padding: 4px 8px;
+            padding: 6px 10px;
         }}
         QTableWidget::item:alternate {{
             background: {t["table_alt_bg"]};
@@ -153,7 +154,7 @@ def _table_style(editable: bool = False) -> str:
             color: {t["fg_bright"]};
             font-weight: 600;
             font-size: 11px;
-            padding: 5px 8px;
+            padding: 7px 10px;
             border: none;
             border-bottom: 1px solid {t["table_border"]};
         }}
@@ -165,31 +166,26 @@ def _prompt_tabs_style() -> str:
     t = _theme_tokens()
     return f"""
         QTabWidget::pane {{
-            border: 1px solid {t["border_card"]};
-            border-radius: 6px;
-            background: {t["bg_panel"]};
-            padding: 2px;
+            border: none;
+            background: transparent;
         }}
         QTabBar::tab {{
-            background: {t["tab_bg"]};
-            border: 1px solid {t["border_tab"]};
-            border-bottom: none;
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
             color: {t["fg_dim"]};
-            padding: 6px 12px;
-            margin-right: 2px;
+            padding: 6px 14px;
+            margin: 2px 3px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 500;
         }}
         QTabBar::tab:selected {{
-            background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                                        stop:0 {t["tab_selected_start"]}, stop:1 {t["tab_selected_end"]});
+            background: {t["nav_checked_bg"]};
             color: {t["fg_bright"]};
-            border-color: {t["border_tab_selected"]};
+            font-weight: 600;
         }}
         QTabBar::tab:hover:!selected {{
-            background: {t["menu_hover_bg"]};
+            background: {t["nav_hover_bg"]};
             color: {t["fg"]};
         }}
     """
@@ -201,10 +197,13 @@ def _text_edit_style() -> str:
         QPlainTextEdit {{
             background: {t["editor_bg"]};
             border: 1px solid {t["border_settings_input"]};
-            border-radius: 8px;
+            border-radius: 12px;
             color: {t["fg"]};
             padding: 10px;
             selection-background-color: {t["selection_bg"]};
+        }}
+        QPlainTextEdit:focus {{
+            border-color: {t["editor_border"]};
         }}
     """
 
@@ -224,31 +223,26 @@ def _dialog_style() -> str:
         {build_shared_button_stylesheet(t)}
         {build_section_icon_button_stylesheet(t)}
         QTabWidget::pane {{
-            border: 1px solid {t["border_card"]};
-            border-radius: 10px;
-            background: {t["bg_panel"]};
-            padding: 4px;
+            border: none;
+            background: transparent;
         }}
         QTabBar::tab {{
-            background: {t["tab_bg"]};
-            border: 1px solid {t["border_tab"]};
-            border-bottom: none;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
             color: {t["fg_dim"]};
-            padding: 9px 16px;
-            margin-right: 3px;
-            font-weight: 600;
+            padding: 6px 14px;
+            margin: 2px 3px;
+            font-weight: 500;
             font-size: 12px;
         }}
         QTabBar::tab:selected {{
-            background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                stop:0 {t["tab_selected_start"]}, stop:1 {t["tab_selected_end"]});
+            background: {t["nav_checked_bg"]};
             color: {t["fg_bright"]};
-            border-color: {t["border_tab_selected"]};
+            font-weight: 600;
         }}
         QTabBar::tab:hover:!selected {{
-            background: {t["menu_hover_bg"]};
+            background: {t["nav_hover_bg"]};
             color: {t["fg"]};
         }}
     """
@@ -260,7 +254,7 @@ def _add_section_button_style() -> str:
         QPushButton {{
             background: {t["btn_chip_bg"]};
             border: 1px dashed {t["btn_chip_border"]};
-            border-radius: 8px;
+            border-radius: 10px;
             color: {t["accent"]};
             padding: 10px 20px;
             font-weight: 600;
@@ -313,13 +307,17 @@ def _line_edit_style() -> str:
         QLineEdit {{
             background: {t["bg_input"]};
             border: 1px solid {t["border_settings_input"]};
-            border-radius: 7px;
+            border-radius: 8px;
             color: {t["fg"]};
             padding: 7px 10px;
             min-height: 20px;
         }}
         QLineEdit:focus {{
             border-color: {t["editor_border"]};
+            background: {t["bg_input_focus"]};
+        }}
+        QLineEdit:hover {{
+            border-color: {t["border_input_hover"]};
         }}
     """
 
@@ -331,7 +329,7 @@ def _menu_style() -> str:
             background: {t["bg_dropdown"]};
             background-color: {t["bg_dropdown"]};
             border: 1px solid {t["border_input"]};
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 6px 4px;
             color: {t["fg"]};
         }}
@@ -339,7 +337,7 @@ def _menu_style() -> str:
             background: transparent;
             background-color: transparent;
             padding: 8px 20px;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 13px;
         }}
         QMenu::item:selected {{

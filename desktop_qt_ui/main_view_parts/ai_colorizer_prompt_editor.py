@@ -96,16 +96,23 @@ def _dialog_stylesheet() -> str:
             padding-left: 20px;
             padding-right: 20px;
         }}
+        QWidget#section_card {{
+            background: {colors["bg_card"]};
+            border: 1px solid {colors["border_card"]};
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }}
         QTableWidget#reference_images_table {{
-            background: {colors["bg_input"]};
-            border: 1px solid {colors["border_input"]};
-            border-radius: 8px;
+            background: {colors["bg_list"]};
+            border: 1px solid {colors["border_list"]};
+            border-radius: 12px;
             color: {colors["text_primary"]};
             gridline-color: {colors["divider_sub_line"]};
             font-size: 12px;
         }}
         QTableWidget#reference_images_table::item {{
-            padding: 4px 8px;
+            padding: 6px 10px;
         }}
         QTableWidget#reference_images_table::item:alternate {{
             background: {colors["bg_surface_soft"]};
@@ -117,11 +124,11 @@ def _dialog_stylesheet() -> str:
         QTableWidget#reference_images_table QHeaderView::section {{
             background: {colors["bg_toolbar"]};
             color: {colors["text_page_title"]};
-            font-weight: 600;
+            font-weight: 500;
             font-size: 11px;
-            padding: 5px 8px;
+            padding: 7px 10px;
             border: none;
-            border-bottom: 1px solid {colors["border_input"]};
+            border-bottom: 1px solid {colors["border_list"]};
         }}
         QLabel#status_label[statusState="default"] {{
             color: {colors["text_muted"]};

@@ -68,6 +68,7 @@ class MainView(QWidget):
     _delete_selected_font = layout_parts.delete_selected_font
     _apply_selected_font = layout_parts.apply_selected_font
     _on_font_selection_changed = layout_parts._on_font_selection_changed
+    _update_font_preview = layout_parts._update_font_preview
     _refresh_font_preview_styles = layout_parts.refresh_font_preview_styles
 
     _create_replacements_page = layout_parts.create_replacements_page

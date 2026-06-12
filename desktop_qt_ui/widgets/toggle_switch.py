@@ -90,6 +90,17 @@ class ToggleSwitch(QWidget):
             255,
         )
 
+    @staticmethod
+    def _blend_with_background(color: QColor, bg: QColor) -> QColor:
+        """将半透明的主题色与不透明卡片背景色进行预混合，渲染出高级且柔和的实心色彩"""
+        alpha = color.alpha() / 255.0
+        return QColor(
+            int(color.red() * alpha + bg.red() * (1.0 - alpha)),
+            int(color.green() * alpha + bg.green() * (1.0 - alpha)),
+            int(color.blue() * alpha + bg.blue() * (1.0 - alpha)),
+            255
+        )
+
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -105,27 +116,35 @@ class ToggleSwitch(QWidget):
         track_path.addRoundedRect(QRectF(0, 0, w, h), radius, radius)
 
         c = get_current_theme_colors()
-        track_off = _to_qcolor(c["btn_soft_bg"])
-        track_off_soft = _to_qcolor(c["bg_surface_soft"])
-        track_on_start = _to_qcolor(c["btn_primary_bg"])
-        track_on_end = _to_qcolor(c["btn_primary_hover"])
-        border_off = _to_qcolor(c["btn_soft_border"])
-        border_on = _to_qcolor(c["btn_primary_border"])
+        # 读取当前主题的卡片背景色作为混合基色，若不合法则兜底为白色
+        bg = _to_qcolor(c.get("bg_card", "#ffffff"))
+        if not bg.isValid():
+            bg = QColor(255, 255, 255)
+        bg.setAlpha(255)
+
+        # 混合出高级感软色（避开刺眼的纯黑/纯高饱和蓝色）
+        track_off = self._blend_with_background(_to_qcolor(c["btn_soft_bg"]), bg)
+        track_off_soft = self._blend_with_background(_to_qcolor(c["bg_surface_soft"]), bg)
+        track_on_start = self._blend_with_background(_to_qcolor(c["btn_primary_bg"]), bg)
+        track_on_end = self._blend_with_background(_to_qcolor(c["btn_primary_hover"]), bg)
+        border_off = self._blend_with_background(_to_qcolor(c["btn_soft_border"]), bg)
+        border_on = self._blend_with_background(_to_qcolor(c["btn_primary_border"]), bg)
+        
         handle_off = _to_qcolor(c["bg_surface_raised"])
         handle_on = _to_qcolor(c["btn_primary_text"])
         shadow_color = _to_qcolor(c["shadow_color"])
 
         if self._hovered and pos < 1.0:
-            track_off = self._mix_color(_to_qcolor(c["btn_soft_hover"]), track_off, 0.30)
+            hover_color = self._blend_with_background(_to_qcolor(c["btn_soft_hover"]), bg)
+            track_off = self._mix_color(hover_color, track_off, 0.30)
 
         gradient = QLinearGradient(0, 0, w, 0)
         gradient.setColorAt(0.0, self._mix_color(track_on_start, track_off, pos))
         gradient.setColorAt(1.0, self._mix_color(track_on_end, track_off_soft, pos))
         p.fillPath(track_path, QBrush(gradient))
 
-        # 轨道边框
-        border_color = self._mix_color(border_on, border_off, 0.20 + 0.80 * pos)
-        border_color.setAlpha(190 if self._checked else 150)
+        # 轨道边框（柔和渐变）
+        border_color = self._mix_color(border_on, border_off, pos)
         p.setPen(QPen(border_color, 1.0))
         p.drawPath(track_path)
 
@@ -133,15 +152,15 @@ class ToggleSwitch(QWidget):
         handle_x = 3.0 + pos * (w - 2 * 3.0 - 2 * handle_radius)
         handle_y = h / 2.0
 
-        # 手柄阴影
-        shadow_color.setAlpha(48 if self._checked else 38)
+        # 手柄阴影（调淡阴影使视觉更干净）
+        shadow_color.setAlpha(30 if self._checked else 20)
         p.setBrush(QBrush(shadow_color))
         p.setPen(Qt.PenStyle.NoPen)
         p.drawEllipse(QPointF(handle_x + handle_radius + 0.5, handle_y + 0.5), handle_radius, handle_radius)
 
         # 手柄本体
         handle_color = self._mix_color(handle_on, handle_off, pos)
-        handle_border = self._mix_color(border_on, border_off, 0.15 + 0.85 * pos)
+        handle_border = self._mix_color(border_on, border_off, pos)
         p.setBrush(QBrush(handle_color))
         p.setPen(QPen(handle_border, 1.0))
         p.drawEllipse(QPointF(handle_x + handle_radius, handle_y), handle_radius, handle_radius)

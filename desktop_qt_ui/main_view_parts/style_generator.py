@@ -47,13 +47,13 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #sidebar_brand {{
             color: {c["text_brand"]};
             font-size: 17px;
-            font-weight: 800;
+            font-weight: 600;
             padding: 8px 6px 2px 6px;
         }}
         #sidebar_version {{
             color: {c["text_sidebar_group"]};
             font-size: 11px;
-            font-weight: 600;
+            font-weight: normal;
             padding: 0 6px 8px 6px;
         }}
         #sidebar_divider {{
@@ -65,13 +65,13 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #sidebar_group_label {{
             color: {c["text_sidebar_group"]};
             font-size: 10px;
-            font-weight: 700;
+            font-weight: 600;
             padding: 8px 6px 2px 6px;
         }}
         #sidebar_api_status {{
             color: {c["text_secondary"]};
             font-size: 11px;
-            font-weight: 600;
+            font-weight: normal;
             padding: 4px 6px 8px 6px;
             line-height: 1.25;
         }}
@@ -82,24 +82,24 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #sidebar_panel QPushButton[navButton="true"],
         #sidebar_panel QPushButton[navActionButton="true"] {{
             background: transparent;
-            border: 1px solid transparent;
-            border-radius: 10px;
+            border: none;
+            border-radius: 8px;
             color: {c["text_secondary"]};
             text-align: left;
-            padding: 10px 12px;
+            padding: 8px 12px;
+            margin: 2px 8px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 500;
         }}
         #sidebar_panel QPushButton[navButton="true"]:hover,
         #sidebar_panel QPushButton[navActionButton="true"]:hover {{
             background: {c["nav_hover_bg"]};
-            border-color: {c["nav_hover_border"]};
             color: {c["text_accent"]};
         }}
         #sidebar_panel QPushButton[navButton="true"]:checked {{
             background: {c["nav_checked_bg"]};
-            border-color: {c["nav_checked_border"]};
             color: {c["text_bright"]};
+            font-weight: 600;
         }}
         #sidebar_panel QPushButton[navActionButton="true"] {{
             margin-top: 2px;
@@ -123,8 +123,8 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #settings_desc_panel,
         #log_container {{
             background: {c["bg_header_card"]};
-            border: 1px solid {c["border_card"]};
-            border-radius: 14px;
+            border: 1px solid {c["border_subtle"]};
+            border-radius: 16px;
         }}
         QGroupBox#section_card {{
             margin-top: 12px;
@@ -133,12 +133,12 @@ def generate_main_view_style(theme: str = "dark") -> str:
         QGroupBox#section_card::title {{
             color: {c["text_desc_name"]};
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 600;
         }}
         #page_title {{
             color: {c["text_page_title"]};
             font-size: 18px;
-            font-weight: 800;
+            font-weight: 600;
         }}
         #page_subtitle {{
             color: {c["text_page_subtitle"]};
@@ -147,7 +147,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #row_label {{
             color: {c["text_row_label"]};
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 500;
         }}
         #inline_toolbar {{
             background: transparent;
@@ -182,7 +182,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #translation_file_list QLabel#file_item_name_label,
         #asset_list QLabel#file_item_name_label {{
             color: {c["text_accent"]};
-            font-weight: 600;
+            font-weight: 500;
         }}
         #translation_file_list QPushButton#file_item_remove_button,
         #asset_list QPushButton#file_item_remove_button {{
@@ -196,7 +196,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
             max-height: 20px;
             padding: 0px;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 500;
         }}
         #translation_file_list QPushButton#file_item_remove_button:hover,
         #asset_list QPushButton#file_item_remove_button:hover {{
@@ -256,7 +256,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
             border-radius: 10px;
             color: {c["btn_soft_text"]};
             padding: 8px 12px;
-            font-weight: 700;
+            font-weight: 500;
         }}
         #main_view_root QPushButton:hover {{
             background: {c["btn_soft_hover"]};
@@ -270,7 +270,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
             background: {c["btn_soft_bg"]};
             border: 1px solid {c["btn_soft_border"]};
             color: {c["btn_soft_text"]};
-            font-weight: 600;
+            font-weight: 500;
             padding: 7px 10px;
         }}
         #main_view_root QPushButton[chipButton="true"]:hover {{
@@ -281,20 +281,33 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #main_view_root QPushButton[primaryAction="true"] {{
             border-radius: 12px;
             padding: 10px 18px;
-            font-weight: 800;
+            font-weight: 600;
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_gradient_start"]}, stop:1 {c["cta_gradient_end"]});
+            border: 1px solid {c["cta_border"]};
+            color: {c["cta_text"]};
+        }}
+        #main_view_root QPushButton[primaryAction="true"]:hover {{
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_hover_start"]}, stop:1 {c["cta_hover_end"]});
+        }}
+        #main_view_root QPushButton[primaryAction="true"]:pressed {{
+            background: {c["btn_primary_pressed"]};
         }}
         #start_translation_button {{
             min-height: 44px;
             border-radius: 12px;
             padding: 10px 18px;
             font-size: 14px;
-            font-weight: 800;
-            background: {c["btn_primary_bg"]};
-            border: 1px solid {c["btn_primary_border"]};
-            color: {c["btn_primary_text"]};
+            font-weight: 600;
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_gradient_start"]}, stop:1 {c["cta_gradient_end"]});
+            border: 1px solid {c["cta_border"]};
+            color: {c["cta_text"]};
         }}
         #start_translation_button:hover {{
-            background: {c["btn_primary_hover"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_hover_start"]}, stop:1 {c["cta_hover_end"]});
         }}
         #start_translation_button:pressed {{
             background: {c["btn_primary_pressed"]};
@@ -346,10 +359,9 @@ def generate_main_view_style(theme: str = "dark") -> str:
 
         #settings_tabs::pane,
         #settings_tab_widget::pane {{
-            border: 1px solid {c["border_card"]};
-            border-radius: 12px;
-            background: {c["bg_panel"]};
-            padding: 2px;
+            border: none;
+            background: transparent;
+            padding: 0px;
         }}
         #settings_tabs > QTabBar::tab,
         #settings_tab_widget > QTabBar::tab {{
@@ -359,9 +371,9 @@ def generate_main_view_style(theme: str = "dark") -> str:
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
             color: {c["text_muted"]};
-            padding: 9px 16px;
+            padding: 8px 16px;
             margin-right: 3px;
-            font-weight: 700;
+            font-weight: 500;
         }}
         #settings_tabs > QTabBar::tab:selected,
         #settings_tab_widget > QTabBar::tab:selected {{
@@ -390,7 +402,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
         }}
         #settings_scroll_content QLabel#settings_form_label {{
             color: {c["text_row_label"]};
-            font-weight: 700;
+            font-weight: 500;
         }}
         #settings_scroll_content QLineEdit,
         #settings_scroll_content QComboBox {{
@@ -416,7 +428,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
             padding: 6px 12px;
             border-radius: 7px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 500;
         }}
         #settings_scroll_content QPushButton:hover {{
             background: {c["btn_settings_hover"]};
@@ -425,13 +437,13 @@ def generate_main_view_style(theme: str = "dark") -> str:
 
         #settings_desc_panel {{
             background: {c["settings_desc_panel_bg"]};
-            border: 1px solid {c["desc_panel_border"]};
-            border-radius: 14px;
+            border: 1px solid {c["border_subtle"]};
+            border-radius: 16px;
         }}
         #settings_desc_header {{
             color: {c["text_desc_header"]};
             font-size: 14px;
-            font-weight: 800;
+            font-weight: 600;
         }}
         #settings_desc_divider {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
@@ -442,7 +454,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #settings_desc_name {{
             color: {c["text_desc_name"]};
             font-size: 15px;
-            font-weight: 800;
+            font-weight: 600;
             padding-top: 4px;
         }}
         #settings_desc_key {{
@@ -469,7 +481,7 @@ def generate_main_view_style(theme: str = "dark") -> str:
         #font_preview_name {{
             color: {c["text_desc_name"]};
             font-size: 15px;
-            font-weight: 800;
+            font-weight: 600;
         }}
         #font_preview_text {{
             color: {c["text_primary"]};
@@ -543,7 +555,7 @@ def generate_editor_style(theme: str = "dark") -> str:
             color: {c["btn_soft_text"]};
             padding: 4px 11px;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 500;
             min-height: 20px;
             max-height: 28px;
         }}
@@ -564,18 +576,20 @@ def generate_editor_style(theme: str = "dark") -> str:
         }}
         #editor_toolbar QToolButton[variant="accent"],
         #editor_toolbar QToolButton[primaryAction="true"] {{
-            background: {c["btn_primary_bg"]};
-            border: 1px solid {c["btn_primary_border"]};
-            color: {c["btn_primary_text"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_gradient_start"]}, stop:1 {c["cta_gradient_end"]});
+            border: 1px solid {c["cta_border"]};
+            color: {c["cta_text"]};
             border-radius: 9px;
             padding: 5px 14px;
             min-height: 22px;
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 600;
         }}
         #editor_toolbar QToolButton[variant="accent"]:hover,
         #editor_toolbar QToolButton[primaryAction="true"]:hover {{
-            background: {c["btn_primary_hover"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_hover_start"]}, stop:1 {c["cta_hover_end"]});
         }}
         #editor_toolbar QToolButton[variant="accent"]:pressed,
         #editor_toolbar QToolButton[primaryAction="true"]:pressed {{
@@ -658,30 +672,26 @@ def generate_editor_style(theme: str = "dark") -> str:
         }}
 
         #editor_left_tabs::pane {{
-            border: 1px solid {c["border_card"]};
-            border-radius: 12px;
-            background: {c["bg_panel"]};
-            padding: 3px;
+            border: none;
+            background: transparent;
+            padding: 0px;
         }}
         #editor_left_tabs > QTabBar::tab {{
-            background: {c["tab_bg"]};
-            border: 1px solid {c["border_tab"]};
-            border-bottom: none;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
             color: {c["text_muted"]};
-            padding: 8px 12px;
-            margin-right: 3px;
-            font-weight: 700;
+            padding: 6px 12px;
+            margin: 2px 3px;
+            font-weight: 500;
         }}
         #editor_left_tabs > QTabBar::tab:selected {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                        stop:0 {c["tab_selected_start"]}, stop:1 {c["tab_selected_end"]});
+            background: {c["nav_checked_bg"]};
             color: {c["text_bright"]};
-            border-color: {c["border_tab_selected"]};
+            font-weight: 600;
         }}
         #editor_left_tabs > QTabBar::tab:hover:!selected {{
-            background: {c["tab_hover"]};
+            background: {c["nav_hover_bg"]};
             color: {c["text_accent"]};
         }}
 
@@ -701,11 +711,11 @@ def generate_editor_style(theme: str = "dark") -> str:
 
         #editor_view_root QGroupBox {{
             background: {c["bg_card"]};
-            border: 1px solid {c["bg_card_border"]};
-            border-radius: 12px;
+            border: 1px solid {c["border_subtle"]};
+            border-radius: 16px;
             margin-top: 10px;
             padding: 10px;
-            font-weight: 700;
+            font-weight: 600;
             color: {c["text_card_title"]};
         }}
         #editor_view_root QGroupBox::title {{
@@ -728,7 +738,7 @@ def generate_editor_style(theme: str = "dark") -> str:
         #editor_property_content QLabel#editor_brush_size_value_label {{
             color: {c["text_muted"]};
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 500;
         }}
         QWidget#color_picker_root {{
             background: {c["bg_input"]};
@@ -794,7 +804,7 @@ def generate_editor_style(theme: str = "dark") -> str:
             border-radius: 10px;
             color: {c["btn_soft_text"]};
             padding: 6px 10px;
-            font-weight: 700;
+            font-weight: 500;
         }}
         #editor_view_root QPushButton:hover {{
             background: {c["btn_soft_hover"]};
@@ -818,7 +828,7 @@ def generate_editor_style(theme: str = "dark") -> str:
             background: {c["btn_soft_bg"]};
             border: 1px solid {c["btn_soft_border"]};
             color: {c["btn_soft_text"]};
-            font-weight: 600;
+            font-weight: 500;
             padding: 5px 8px;
         }}
         #editor_view_root QPushButton[chipButton="true"]:hover {{
@@ -832,7 +842,7 @@ def generate_editor_style(theme: str = "dark") -> str:
             border-radius: 10px;
             color: {c["btn_soft_text"]};
             padding: 7px 11px;
-            font-weight: 700;
+            font-weight: 500;
             min-height: 30px;
         }}
         #editor_view_root QPushButton[softAction="true"]:hover {{
@@ -851,17 +861,19 @@ def generate_editor_style(theme: str = "dark") -> str:
             color: {c["btn_soft_text"]};
         }}
         #editor_view_root QPushButton[primaryAction="true"] {{
-            background: {c["btn_primary_bg"]};
-            border: 1px solid {c["btn_primary_border"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_gradient_start"]}, stop:1 {c["cta_gradient_end"]});
+            border: 1px solid {c["cta_border"]};
+            color: {c["cta_text"]};
             border-radius: 10px;
-            color: {c["btn_primary_text"]};
             padding: 7px 12px;
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 600;
             min-height: 30px;
         }}
         #editor_view_root QPushButton[primaryAction="true"]:hover {{
-            background: {c["btn_primary_hover"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_hover_start"]}, stop:1 {c["cta_hover_end"]});
         }}
         #editor_view_root QPushButton[primaryAction="true"]:pressed {{
             background: {c["btn_primary_pressed"]};
@@ -887,15 +899,17 @@ def generate_editor_style(theme: str = "dark") -> str:
             min-height: 32px;
         }}
         #editor_apply_button {{
-            background: {c["btn_primary_bg"]};
-            border: 1px solid {c["btn_primary_border"]};
-            color: {c["btn_primary_text"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_gradient_start"]}, stop:1 {c["cta_gradient_end"]});
+            border: 1px solid {c["cta_border"]};
+            color: {c["cta_text"]};
             border-radius: 12px;
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 600;
         }}
         #editor_apply_button:hover {{
-            background: {c["btn_primary_hover"]};
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 {c["cta_hover_start"]}, stop:1 {c["cta_hover_end"]});
         }}
         #editor_apply_button:pressed {{
             background: {c["btn_primary_pressed"]};
@@ -949,7 +963,7 @@ def generate_editor_style(theme: str = "dark") -> str:
         }}
         #editor_file_list QLabel#file_item_name_label {{
             color: {c["text_accent"]};
-            font-weight: 600;
+            font-weight: 500;
         }}
         #editor_file_list QPushButton#file_item_remove_button {{
             background: {c["btn_soft_bg"]};
