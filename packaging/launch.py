@@ -1778,6 +1778,7 @@ def update_code_force(skip_confirm=False):
                 'macOS_2_启动Qt界面.sh',
                 'macOS_3_检查更新并启动.sh',
                 'macOS_4_更新维护.sh',
+                'macOS_common.sh',
                 '.gitattributes',
                 '.gitignore',
                 'LICENSE.txt'
