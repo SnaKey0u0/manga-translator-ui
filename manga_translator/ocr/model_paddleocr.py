@@ -2,13 +2,13 @@
 # Licensed under the Apache License, Version 2.0
 
 """
-PP-OCRv5 ONNX Adapter for Manga Translator
+PP-OCR ONNX Adapter for Manga Translator
 
-Uses PP-OCRv5 recognition models via ONNX Runtime (no PaddlePaddle dependency).
+Uses PP-OCR recognition models via ONNX Runtime (no PaddlePaddle dependency).
 Text detection is handled by manga-translator's own detection modules.
 
 Supports:
-- Chinese/Japanese/English (ch_PP-OCRv5_rec_server_infer)
+- Multilingual PP-OCRv6 (PP-OCRv6_medium_rec)
 - Korean/English (korean_PP-OCRv5_rec_mobile_infer)
 """
 
@@ -33,9 +33,10 @@ from .common import OfflineOCR
 
 class ModelPaddleOCR(OfflineOCR):
     """
-    PP-OCRv5 ONNX text recognition for manga-image-translator.
+    PP-OCR ONNX text recognition for manga-image-translator.
 
-    Supports Chinese, Japanese, Korean, and English text recognition.
+    Supports PP-OCRv6 multilingual recognition plus legacy PP-OCRv5
+    Korean/Latin/Thai variants.
     """
 
     # Use BASE_PATH for consistency with other models and PyInstaller compatibility
@@ -46,19 +47,17 @@ class ModelPaddleOCR(OfflineOCR):
     _MODEL_MAPPING = {
         'ch_onnx': {
             'url': [
-                'https://github.com/hgmzhn/manga-translator-ui/releases/download/v1.7.1/ch_PP-OCRv5_rec_server_infer.onnx',
-                'https://www.modelscope.cn/models/hgmzhn/manga-translator-ui/resolve/master/ch_PP-OCRv5_rec_server_infer.onnx',
+                'https://www.modelscope.cn/models/PaddlePaddle/PP-OCRv6_medium_rec_onnx/resolve/master/inference.onnx',
             ],
-            'hash': 'e09385400eaaaef34ceff54aeb7c4f0f1fe014c27fa8b9905d4709b65746562a',
-            'file': '.',
+            'hash': '9c09abf0957f7968c7586464b7397b84ad2387a0497a351af40e9acc71b673ba',
+            'file': 'PP-OCRv6_medium_rec.onnx',
         },
-        'ch_dict': {
+        'ch_config': {
             'url': [
-                'https://github.com/hgmzhn/manga-translator-ui/releases/download/v1.7.1/ppocrv5_dict.txt',
-                'https://www.modelscope.cn/models/hgmzhn/manga-translator-ui/resolve/master/ppocrv5_dict.txt',
+                'https://www.modelscope.cn/models/PaddlePaddle/PP-OCRv6_medium_rec_onnx/resolve/master/inference.yml',
             ],
-            'hash': 'd1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b',
-            'file': '.',
+            'hash': '991b700facf5b50a7de193468207d5f4255b538dde0d312ae3b7c7a9b6873129',
+            'file': 'PP-OCRv6_medium_rec.yml',
         },
         'korean_onnx': {
             'url': [
@@ -124,31 +123,47 @@ class ModelPaddleOCR(OfflineOCR):
     }
 
     _MODELS = {
-        'ch': {  # Chinese/Japanese/English
-            'onnx': 'ch_PP-OCRv5_rec_server_infer.onnx',
-            'dict': 'ppocrv5_dict.txt',
+        'ch': {  # PP-OCRv6 multilingual
+            'onnx': 'PP-OCRv6_medium_rec.onnx',
+            'yml': 'PP-OCRv6_medium_rec.yml',
+            'name': 'PP-OCRv6_medium_rec',
         },
         'korean': {  # Korean/English
             'onnx': 'korean_PP-OCRv5_rec_mobile_infer.onnx',
             'dict': 'ppocrv5_korean_dict.txt',
+            'name': 'korean_PP-OCRv5_rec_mobile_infer',
         },
         'latin': {  # Latin alphabet languages (English, Spanish, etc.)
             'onnx': 'latin_PP-OCRv5_rec_mobile_infer.onnx',
             'dict': 'ppocrv5_latin_dict.txt',
+            'name': 'latin_PP-OCRv5_rec_mobile_infer',
         },
         'thai': {  # Thai
             'onnx': 'thai_PP-OCRv5_rec_mobile_infer.onnx',
             'dict': 'ppocrv5_thai_dict.txt',
+            'name': 'thai_PP-OCRv5_rec_mobile_infer',
         }
     }
+    _MODEL_MAPPING_KEYS = {
+        'ch': ('ch_onnx', 'ch_config'),
+        'korean': ('korean_onnx', 'korean_dict'),
+        'latin': ('latin_onnx', 'latin_dict'),
+        'thai': ('thai_onnx', 'thai_dict'),
+    }
+    _COMMON_MODEL_MAPPING_KEYS = ('model_48px', 'dict_48px')
 
     def __init__(self, model_type='ch', *args, **kwargs):
         """
         Args:
-            model_type: 'ch' for Chinese/Japanese/English, 'korean' for Korean/English, 'latin' for Latin/English, 'thai' for Thai
+            model_type: 'ch' for PP-OCRv6 multilingual, 'korean' for Korean/English, 'latin' for Latin/English, 'thai' for Thai
         """
-        super().__init__(*args, **kwargs)
+        if model_type not in self._MODELS:
+            raise ValueError(f"Unsupported PaddleOCR model type: {model_type}")
         self.model_type = model_type
+        all_mappings = self.__class__._MODEL_MAPPING
+        keys = self._MODEL_MAPPING_KEYS[model_type] + self._COMMON_MODEL_MAPPING_KEYS
+        self._MODEL_MAPPING = {key: all_mappings[key] for key in keys}
+        super().__init__(*args, **kwargs)
         self.session = None
         self.char_dict = None
         self.device = 'cpu'
@@ -156,7 +171,7 @@ class ModelPaddleOCR(OfflineOCR):
         self.use_gpu = False  # 初始化 use_gpu 标志
 
     async def _load(self, device: str):
-        """Load PP-OCRv5 ONNX model and 48px color prediction model"""
+        """Load PP-OCR ONNX model and 48px color prediction model"""
         from .model_48px import OCR
 
         ort = import_onnxruntime(
@@ -171,13 +186,7 @@ class ModelPaddleOCR(OfflineOCR):
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model not found: {model_path}")
 
-        # Load dictionary
-        dict_path = self._get_file_path(model_config['dict'])
-        if not os.path.exists(dict_path):
-            raise FileNotFoundError(f"Dictionary not found: {dict_path}")
-
-        with open(dict_path, 'r', encoding='utf-8') as f:
-            self.char_dict = ['<blank>'] + [line.strip() for line in f]
+        self.char_dict = self._load_char_dict(model_config)
 
         # Create ONNX session (official provider format + automatic CUDA->CPU fallback)
         sess_options = create_session_options(ort, log_severity_level=3)
@@ -189,6 +198,13 @@ class ModelPaddleOCR(OfflineOCR):
             cuda_options={"device_id": 0},
             logger=self.logger,
         )
+        output_shape = self.session.get_outputs()[0].shape
+        output_classes = output_shape[-1] if output_shape else None
+        if isinstance(output_classes, int) and output_classes != len(self.char_dict):
+            raise ValueError(
+                f"PaddleOCR dictionary size mismatch: model outputs {output_classes} "
+                f"classes, dictionary has {len(self.char_dict)} entries"
+            )
 
         # 加载 48px 模型用于颜色预测
         try:
@@ -232,7 +248,7 @@ class ModelPaddleOCR(OfflineOCR):
             self.color_model = None
 
         self.logger.info(
-            f"PP-OCRv5 ONNX loaded: {model_config['onnx']} "
+            f"{model_config.get('name', 'PP-OCR')} ONNX loaded: {model_config['onnx']} "
             f"({len(self.char_dict)} chars, device={ort_device})"
         )
 
@@ -245,6 +261,36 @@ class ModelPaddleOCR(OfflineOCR):
         if self.color_model is not None:
             del self.color_model
             self.color_model = None
+
+    def _load_char_dict(self, model_config: dict) -> List[str]:
+        """Load CTC dictionary from Paddle inference yml or legacy dict text."""
+        yml_name = model_config.get('yml')
+        if yml_name:
+            yml_path = self._get_file_path(yml_name)
+            if not os.path.exists(yml_path):
+                raise FileNotFoundError(f"PaddleOCR config not found: {yml_path}")
+            try:
+                import yaml
+            except ImportError as exc:
+                raise ImportError(
+                    "PyYAML is required to read PaddleOCR inference.yml. "
+                    "Install with: pip install pyyaml"
+                ) from exc
+            with open(yml_path, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f) or {}
+            chars = (data.get('PostProcess') or {}).get('character_dict')
+            if not isinstance(chars, list) or not chars:
+                raise ValueError(f"PaddleOCR character_dict missing in {yml_path}")
+            chars = [str(ch) for ch in chars]
+            if ' ' not in chars:
+                chars.append(' ')
+            return ['<blank>'] + chars
+
+        dict_path = self._get_file_path(model_config['dict'])
+        if not os.path.exists(dict_path):
+            raise FileNotFoundError(f"Dictionary not found: {dict_path}")
+        with open(dict_path, 'r', encoding='utf-8') as f:
+            return ['<blank>'] + [line.strip() for line in f]
 
     async def _infer(self, image: np.ndarray, textlines: List[Quadrilateral],
                      config: OcrConfig, verbose: bool = False, q=None) -> List[Quadrilateral]:
@@ -400,7 +446,7 @@ class ModelPaddleOCR(OfflineOCR):
 
     def _preprocess(self, img: np.ndarray) -> np.ndarray:
         """
-        Preprocess image for PP-OCRv5 recognition.
+        Preprocess image for PP-OCR recognition.
 
         Input: BGR image [H, W, 3]
         Output: Normalized tensor [1, 3, 48, W']

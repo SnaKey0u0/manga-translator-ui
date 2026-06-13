@@ -36,6 +36,7 @@
 
 ## ⚡ 优化
 
+- 默认 `paddleocr` 识别模型升级为官方 `PP-OCRv6_medium_rec` ONNX 模型，并改为读取 `inference.yml` 内置字典，提升通用多语言 OCR 识别覆盖；`paddleocr_korean` / `paddleocr_latin` / `paddleocr_thai` 专用模型保持原有 PP-OCRv5 版本。
 - 优化了编辑器加载和渲染速度。
 - 编辑器 Ctrl+Q 导出后立刻按 D 切图不再反复弹「未保存的编辑」对话框：导出是异步任务，原本要等后端渲染完成才刷新快照，连按切图会把多个对话框堆到后台。改为提交异步任务前就同步打一次快照，连续切图不再触发误报。
 
