@@ -254,7 +254,7 @@ class ModelPaddleOCRVL(OfflineOCR):
             self.model = AutoModel.from_pretrained(
                 load_path,
                 trust_remote_code=True,
-                dtype=model_dtype,
+                torch_dtype=model_dtype,
                 device_map=self.device if self.device != 'cpu' else None,
                 local_files_only=True
             )
