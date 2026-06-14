@@ -411,6 +411,8 @@ If you want to adjust the result after translation:
 - `No Selection`
 - `Brush`
 - `Eraser`
+- Right-click blank canvas space and choose `Add Text Box`, then drag with the left mouse button to draw the new text box.
+- With the selection tool active, drag from blank canvas space with the left mouse button to box-select multiple text boxes.
 
 Shortcuts:
 
