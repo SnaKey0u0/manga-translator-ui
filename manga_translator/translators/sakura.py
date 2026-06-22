@@ -215,6 +215,7 @@ class SakuraTranslator(CommonTranslator):
         else:
             self.client.base_url = SAKURA_API_BASE
         self.client.api_key = "sk-114514"
+        self.logger.info(f"[DEBUG] Sakura API base_url: {self.client.base_url}")
         self.temperature = 0.3
         self.top_p = 0.3
         self.frequency_penalty = 0.1
@@ -519,7 +520,7 @@ class SakuraTranslator(CommonTranslator):
         raw_lenth = len(raw_text)
         max_lenth = 512
         max_token_num = max(raw_lenth*2, max_lenth)
-        extra_query = {
+        extra_body = {
             'do_sample': False,
             'num_beams': 1,
             'repetition_penalty': 1.0,
@@ -540,6 +541,23 @@ class SakuraTranslator(CommonTranslator):
                 "content": user_prompt
             }
         ]
+
+        # ===== DEBUG LOG =====
+        import json as _json
+        debug_payload = {
+            "model": "sukinishiro",
+            "messages": messages,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "max_tokens": max_token_num,
+            "frequency_penalty": self.frequency_penalty,
+            "seed": -1,
+            **extra_body,
+        }
+        self.logger.info(f"[DEBUG] API URL: {self.client.base_url}")
+        self.logger.info(f"[DEBUG] Request payload:\n{_json.dumps(debug_payload, ensure_ascii=False, indent=2)}")
+        # ===== END DEBUG LOG =====
+
         response = await self.client.chat.completions.create(
             model="sukinishiro",
             messages=messages,
@@ -548,7 +566,7 @@ class SakuraTranslator(CommonTranslator):
             max_tokens=max_token_num,
             frequency_penalty=self.frequency_penalty,
             seed=-1,
-            extra_query=extra_query,
+            extra_body=extra_body,
         )
         
         # 验证响应对象是否有效
