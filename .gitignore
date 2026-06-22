@@ -10,8 +10,8 @@ conda_env/
 Miniconda3/
 
 # Environment files (contain sensitive information)
-.env
-.env.*
+# .env
+# .env.*
 
 # Presets directory (contains API keys and sensitive configuration)
 presets/
